@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { mockDomains, currentUser } from "@/lib/mockData";
 import { Domain } from "@/types";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/validation";
 
 const Admin = () => {

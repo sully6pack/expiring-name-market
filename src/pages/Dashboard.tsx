@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { mockDomains, currentUser } from "@/lib/mockData";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import DomainCard from "@/components/DomainCard";
 import { Domain } from "@/types";
 import { isDomainValid } from "@/utils/validation";
