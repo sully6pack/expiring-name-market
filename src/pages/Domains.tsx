@@ -1,0 +1,168 @@
+
+import { useState, useEffect } from "react";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationNext, 
+  PaginationPrevious, 
+  PaginationLink 
+} from "@/components/ui/pagination";
+import Navbar from "@/components/Navbar";
+import DomainCard from "@/components/DomainCard";
+import { mockDomains } from "@/lib/mockData";
+import { Domain } from "@/types";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const Domains = () => {
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState<string>("expiration-asc");
+  
+  const domainsPerPage = 8;
+
+  useEffect(() => {
+    // In a real app, this would be an API call
+    setDomains(mockDomains);
+    setFilteredDomains(mockDomains);
+  }, []);
+
+  useEffect(() => {
+    let result = [...domains];
+    
+    // Apply search filter
+    if (searchTerm) {
+      result = result.filter(domain => 
+        domain.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        domain.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortOrder) {
+        case "expiration-asc":
+          return new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime();
+        case "expiration-desc":
+          return new Date(b.expirationDate).getTime() - new Date(a.expirationDate).getTime();
+        case "popularity":
+          return b.likes - a.likes;
+        case "alphabetical":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredDomains(result);
+  }, [domains, searchTerm, sortOrder]);
+
+  // Calculate pagination
+  const indexOfLastDomain = currentPage * domainsPerPage;
+  const indexOfFirstDomain = indexOfLastDomain - domainsPerPage;
+  const currentDomains = filteredDomains.slice(indexOfFirstDomain, indexOfLastDomain);
+  const totalPages = Math.ceil(filteredDomains.length / domainsPerPage);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // The filtering is handled by the useEffect
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Browse Domains</h1>
+        
+        {/* Search and filter */}
+        <div className="mb-8">
+          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+            <div className="flex-grow">
+              <Input
+                type="text"
+                placeholder="Search domains..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="w-full md:w-48">
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="expiration-asc">Expiration (Soon First)</SelectItem>
+                  <SelectItem value="expiration-desc">Expiration (Later First)</SelectItem>
+                  <SelectItem value="popularity">Most Popular</SelectItem>
+                  <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit">Search</Button>
+          </form>
+        </div>
+        
+        {/* Domain listings */}
+        {currentDomains.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {currentDomains.map((domain) => (
+              <DomainCard key={domain.id} domain={domain} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-lg text-gray-500">No domains found matching your search criteria.</p>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {filteredDomains.length > 0 && (
+          <div className="mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <PaginationItem key={page}>
+                    <PaginationLink 
+                      isActive={page === currentPage}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Domains;
