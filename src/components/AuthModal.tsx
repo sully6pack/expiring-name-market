@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -16,6 +17,7 @@ interface AuthModalProps {
   onClose: () => void;
   mode: "login" | "register";
   setMode: (mode: "login" | "register") => void;
+  onAuthenticate?: () => void;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({
@@ -23,6 +25,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   mode,
   setMode,
+  onAuthenticate,
 }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +41,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setTimeout(() => {
       setLoading(false);
       onClose();
+      
+      if (onAuthenticate) {
+        onAuthenticate();
+      }
+      
       toast({
         title: mode === "login" ? "Successfully logged in" : "Registration successful",
         description: mode === "login" 

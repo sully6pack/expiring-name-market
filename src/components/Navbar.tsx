@@ -15,6 +15,12 @@ const Navbar = () => {
     setUser(null);
   };
 
+  const handleSignIn = () => {
+    // Mock sign-in - in a real app this would call an authentication API
+    setUser(currentUser);
+    setIsAuthModalOpen(false);
+  };
+
   const openLoginModal = () => {
     setModalMode("login");
     setIsAuthModalOpen(true);
@@ -88,6 +94,7 @@ const Navbar = () => {
         onClose={() => setIsAuthModalOpen(false)}
         mode={modalMode}
         setMode={setModalMode}
+        onAuthenticate={handleSignIn}
       />
     </header>
   );
