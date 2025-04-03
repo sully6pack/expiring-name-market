@@ -17,20 +17,25 @@ const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-
+  
   useEffect(() => {
+    // Check if user is authenticated and is an admin
+    if (!currentUser || !currentUser.isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "You must be an admin to view this page.",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+    
     // Simulate API call to fetch all domains
     setTimeout(() => {
       setDomains(mockDomains);
       setIsLoading(false);
     }, 1000);
-  }, []);
-
-  // Check if user is authenticated and is an admin
-  if (!currentUser || !currentUser.isAdmin) {
-    navigate("/");
-    return null;
-  }
+  }, [navigate, toast]);
 
   const toggleAdminPick = (domainId: string) => {
     setDomains(
@@ -67,6 +72,18 @@ const Admin = () => {
       });
     }
   };
+
+  // If we're still checking authentication or loading data, show a loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

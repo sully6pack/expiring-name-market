@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { currentUser } from "@/lib/mockData";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,6 +34,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Admin credentials for demo purposes
+  const ADMIN_EMAIL = "admin@notrenewing.com";
+  const ADMIN_PASSWORD = "admin123";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,6 +47,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
       setLoading(false);
       onClose();
       
+      // Check if this is an admin login
+      const isAdmin = email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+      
+      // Update the currentUser's admin status based on credentials
+      if (mode === "login") {
+        currentUser.isAdmin = isAdmin;
+      }
+      
       if (onAuthenticate) {
         onAuthenticate();
       }
@@ -49,7 +62,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
       toast({
         title: mode === "login" ? "Successfully logged in" : "Registration successful",
         description: mode === "login" 
-          ? "Welcome back to NotRenewing.com" 
+          ? `Welcome${isAdmin ? " Admin" : ""} to NotRenewing.com` 
           : "Please check your email to verify your account",
       });
     }, 1000);
@@ -92,6 +105,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={mode === "login" ? "Use admin@notrenewing.com for admin access" : ""}
               required
             />
           </div>
@@ -102,6 +116,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={mode === "login" ? "Use admin123 for admin access" : ""}
               required
             />
           </div>
