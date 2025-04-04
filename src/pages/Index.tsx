@@ -110,7 +110,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/domains">
-              <Button size="lg" variant="default" className="bg-white text-brand-blue hover:bg-gray-100">
+              <Button size="lg" variant="white" className="hover:bg-gray-100">
                 Browse Domains
               </Button>
             </Link>
