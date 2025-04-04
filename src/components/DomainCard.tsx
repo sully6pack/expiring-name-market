@@ -55,12 +55,17 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
                 Staff Pick
               </Badge>
             )}
+            {domain.tld && (
+              <Badge variant="secondary" className="bg-gray-200 text-gray-800">
+                .{domain.tld}
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-muted-foreground mb-4">{domain.description}</p>
-        <div className="mb-3">
+        <div className="mb-3 flex flex-wrap gap-2">
           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
             <Tag size={14} />
             {domain.category.charAt(0).toUpperCase() + domain.category.slice(1)}

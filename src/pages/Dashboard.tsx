@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -18,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import DomainCard from "@/components/DomainCard";
 import { Domain, DomainCategory } from "@/types";
 import { isDomainValid } from "@/utils/validation";
+import { extractTLD } from "@/utils/domainUtils";
 import { 
   Select, 
   SelectContent, 
@@ -38,10 +38,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // In a real app, these would be API calls to fetch user's domains
     setMyDomains(mockDomains.filter(domain => domain.sellerId === currentUser.id));
-    
-    // Mock interested buyers
     setInterestedBuyers([
       { 
         domainId: mockDomains[0].id, 
@@ -80,21 +77,30 @@ const Dashboard = () => {
       return;
     }
 
-    // Simulate API call
+    const tld = extractTLD(domainName);
+    
+    if (!tld) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Domain",
+        description: "Please enter a valid domain name with a TLD (e.g., .com, .org, .io)",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
     setTimeout(() => {
       toast({
         title: "Domain Listed",
         description: `${domainName} has been successfully listed`,
       });
       
-      // Reset form
       setDomainName("");
       setDescription("");
       setExpirationDate(addDays(new Date(), 14));
       setCategory(DomainCategory.Business);
       setIsSubmitting(false);
       
-      // In a real app, we would fetch the updated list from the API
       const newDomain: Domain = {
         id: `domain${Math.random().toString(36).substring(7)}`,
         name: domainName,
@@ -108,13 +114,13 @@ const Dashboard = () => {
         isAdminPick: false,
         createdAt: new Date(),
         category,
+        tld,
       };
       
       setMyDomains([newDomain, ...myDomains]);
     }, 1000);
   };
 
-  // Check if user is authenticated
   if (!currentUser) {
     navigate("/");
     return null;
@@ -172,6 +178,9 @@ const Dashboard = () => {
                       onChange={(e) => setDomainName(e.target.value)}
                       required
                     />
+                    <p className="text-sm text-muted-foreground">
+                      Include the full domain name with TLD (e.g., .com, .org, .io)
+                    </p>
                   </div>
                   
                   <div className="space-y-2">

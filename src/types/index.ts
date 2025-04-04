@@ -21,6 +21,7 @@ export interface Domain {
   isAdminPick: boolean;
   createdAt: Date;
   category: DomainCategory;
+  tld: string; // Added TLD field
 }
 
 export enum DomainCategory {
