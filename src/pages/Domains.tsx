@@ -33,9 +33,10 @@ const Domains = () => {
   const domainsPerPage = 8;
 
   useEffect(() => {
-    // In a real app, this would be an API call
-    setDomains(mockDomains);
-    setFilteredDomains(mockDomains);
+    // Use the global domains array if it exists, otherwise use mockDomains
+    const allDomains = window.globalDomains || mockDomains;
+    setDomains(allDomains);
+    setFilteredDomains(allDomains);
   }, []);
 
   useEffect(() => {

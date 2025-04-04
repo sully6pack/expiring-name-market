@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -26,6 +27,12 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
+// Create a global variable to store domains across the application
+// This is a simple solution for this mock app - in a real app you'd use a state management solution
+if (!window.globalDomains) {
+  window.globalDomains = [...mockDomains];
+}
+
 const Dashboard = () => {
   const [domainName, setDomainName] = useState("");
   const [description, setDescription] = useState("");
@@ -38,7 +45,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setMyDomains(mockDomains.filter(domain => domain.sellerId === currentUser.id));
+    setMyDomains(window.globalDomains.filter(domain => domain.sellerId === currentUser.id));
     setInterestedBuyers([
       { 
         domainId: mockDomains[0].id, 
@@ -95,12 +102,6 @@ const Dashboard = () => {
         description: `${domainName} has been successfully listed`,
       });
       
-      setDomainName("");
-      setDescription("");
-      setExpirationDate(addDays(new Date(), 14));
-      setCategory(DomainCategory.Business);
-      setIsSubmitting(false);
-      
       const newDomain: Domain = {
         id: `domain${Math.random().toString(36).substring(7)}`,
         name: domainName,
@@ -117,7 +118,16 @@ const Dashboard = () => {
         tld,
       };
       
+      // Add to the global domains list and the local state
+      window.globalDomains.push(newDomain);
       setMyDomains([newDomain, ...myDomains]);
+      
+      // Reset form fields
+      setDomainName("");
+      setDescription("");
+      setExpirationDate(addDays(new Date(), 14));
+      setCategory(DomainCategory.Business);
+      setIsSubmitting(false);
     }, 1000);
   };
 
@@ -345,5 +355,12 @@ const Dashboard = () => {
     </div>
   );
 };
+
+// Add this TypeScript interface to the global Window object
+declare global {
+  interface Window {
+    globalDomains: Domain[];
+  }
+}
 
 export default Dashboard;
