@@ -3,19 +3,24 @@ import { Domain } from "@/types";
 import DomainCard from "@/components/DomainCard";
 import { Card, CardContent } from "@/components/ui/card";
 import DomainDeleteButton from "@/components/DomainDeleteButton";
+import DomainFeatureToggle from "@/components/DomainFeatureToggle";
 
 interface MyDomainsTabProps {
   domains: Domain[];
   onDeleteDomain: (domain: Domain) => void;
+  onToggleFeature: (domain: Domain) => void;
 }
 
-const MyDomainsTab = ({ domains, onDeleteDomain }: MyDomainsTabProps) => {
+const MyDomainsTab = ({ domains, onDeleteDomain, onToggleFeature }: MyDomainsTabProps) => {
   return domains.length > 0 ? (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {domains.map((domain) => (
         <div key={domain.id} className="relative">
           <DomainCard domain={domain} />
-          <DomainDeleteButton domain={domain} onDelete={onDeleteDomain} />
+          <div className="absolute top-2 right-2 flex gap-2">
+            <DomainFeatureToggle domain={domain} onToggleFeature={onToggleFeature} />
+            <DomainDeleteButton domain={domain} onDelete={onDeleteDomain} />
+          </div>
         </div>
       ))}
     </div>

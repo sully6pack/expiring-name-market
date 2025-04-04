@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Domain } from "@/types";
 import { formatDate, getDaysUntilExpiration } from "@/utils/validation";
-import { Heart, Tag } from "lucide-react";
+import { Heart, Tag, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DomainCardProps {
@@ -53,6 +53,12 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
             {domain.isAdminPick && (
               <Badge variant="outline" className="bg-brand-blue text-white">
                 Staff Pick
+              </Badge>
+            )}
+            {domain.isFeatured && (
+              <Badge variant="outline" className="bg-purple-500 text-white flex items-center gap-1">
+                <Award size={12} />
+                Featured
               </Badge>
             )}
             {domain.tld && (

@@ -1,3 +1,4 @@
+
 import { User, Domain, DomainCategory, LeaderboardType } from "@/types";
 
 export const mockDomains: Domain[] = [
@@ -12,6 +13,7 @@ export const mockDomains: Domain[] = [
     price: 99,
     isSponsored: false,
     isAdminPick: true,
+    isFeatured: false,
     createdAt: new Date(),
     category: DomainCategory.Technology,
     tld: "com",
@@ -27,6 +29,7 @@ export const mockDomains: Domain[] = [
     price: 99,
     isSponsored: true,
     isAdminPick: false,
+    isFeatured: true,
     createdAt: new Date(),
     category: DomainCategory.Technology,
     tld: "io",
