@@ -30,13 +30,37 @@ const Index = () => {
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    // Use the global domains array if it exists, otherwise use mockDomains
-    const allDomains = window.globalDomains || mockDomains;
+    // Try to load domains from localStorage first
+    let allDomains: Domain[] = [];
+    
+    try {
+      const storedDomains = localStorage.getItem('globalDomains');
+      if (storedDomains) {
+        // Parse the stored domains and fix date objects
+        const parsedDomains = JSON.parse(storedDomains);
+        allDomains = parsedDomains.map((domain: any) => ({
+          ...domain,
+          expirationDate: new Date(domain.expirationDate),
+          createdAt: new Date(domain.createdAt)
+        }));
+      } else {
+        // Fallback to global domains or mock data
+        allDomains = window.globalDomains || mockDomains;
+      }
+    } catch (error) {
+      console.error('Error loading domains from localStorage:', error);
+      // Fallback to global domains or mock data
+      allDomains = window.globalDomains || mockDomains;
+    }
+    
+    // Update the global domains variable
+    window.globalDomains = allDomains;
+    
     setFeaturedDomains(allDomains.slice(0, 8));
     setFilteredFeaturedDomains(allDomains.slice(0, 8));
-    setMostLiked(getLeaderboard(LeaderboardType.MostLiked).slice(0, 3));
-    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks).slice(0, 3));
-    setSponsored(getLeaderboard(LeaderboardType.Sponsored).slice(0, 3));
+    setMostLiked(getLeaderboard(LeaderboardType.MostLiked, allDomains).slice(0, 3));
+    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks, allDomains).slice(0, 3));
+    setSponsored(getLeaderboard(LeaderboardType.Sponsored, allDomains).slice(0, 3));
     
     // Get available TLDs
     setAvailableTLDs(getUniqueTLDs(allDomains));

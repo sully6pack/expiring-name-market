@@ -1,195 +1,178 @@
+import { User, Domain, DomainCategory, LeaderboardType } from "@/types";
 
-import { Domain, User, LeaderboardType, DomainCategory } from "../types";
-import { extractTLD } from "../utils/domainUtils";
+export const mockDomains: Domain[] = [
+  {
+    id: "domain1",
+    name: "example.com",
+    expirationDate: new Date("2024-05-03"),
+    description: "A generic example domain for testing purposes.",
+    sellerId: "user1",
+    sellerName: "John Doe",
+    likes: 15,
+    price: 99,
+    isSponsored: false,
+    isAdminPick: true,
+    createdAt: new Date(),
+    category: DomainCategory.Technology,
+    tld: "com",
+  },
+  {
+    id: "domain2",
+    name: "techinnovations.io",
+    expirationDate: new Date("2024-05-15"),
+    description: "Innovative tech solutions and resources.",
+    sellerId: "user2",
+    sellerName: "Alice Smith",
+    likes: 28,
+    price: 99,
+    isSponsored: true,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Technology,
+    tld: "io",
+  },
+  {
+    id: "domain3",
+    name: "healthfirst.org",
+    expirationDate: new Date("2024-06-01"),
+    description: "Your primary source for health-related information.",
+    sellerId: "user3",
+    sellerName: "Bob Johnson",
+    likes: 8,
+    price: 99,
+    isSponsored: false,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Health,
+    tld: "org",
+  },
+  {
+    id: "domain4",
+    name: "traveladventures.net",
+    expirationDate: new Date("2024-06-10"),
+    description: "Plan your next adventure with us!",
+    sellerId: "user1",
+    sellerName: "John Doe",
+    likes: 35,
+    price: 99,
+    isSponsored: true,
+    isAdminPick: true,
+    createdAt: new Date(),
+    category: DomainCategory.Travel,
+    tld: "net",
+  },
+  {
+    id: "domain5",
+    name: "businesssolutions.biz",
+    expirationDate: new Date("2024-07-01"),
+    description: "Providing top-notch business solutions for growth.",
+    sellerId: "user2",
+    sellerName: "Alice Smith",
+    likes: 12,
+    price: 99,
+    isSponsored: false,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Business,
+    tld: "biz",
+  },
+  {
+    id: "domain6",
+    name: "educationplus.info",
+    expirationDate: new Date("2024-07-15"),
+    description: "Enhancing education through innovative resources.",
+    sellerId: "user3",
+    sellerName: "Bob Johnson",
+    likes: 20,
+    price: 99,
+    isSponsored: true,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Education,
+    tld: "info",
+  },
+  {
+    id: "domain7",
+    name: "financeforward.co",
+    expirationDate: new Date("2024-08-01"),
+    description: "Moving finance forward with expert insights.",
+    sellerId: "user1",
+    sellerName: "John Doe",
+    likes: 42,
+    price: 99,
+    isSponsored: false,
+    isAdminPick: true,
+    createdAt: new Date(),
+    category: DomainCategory.Finance,
+    tld: "co",
+  },
+  {
+    id: "domain8",
+    name: "entertainmentnow.tv",
+    expirationDate: new Date("2024-08-15"),
+    description: "Your go-to source for the latest entertainment news.",
+    sellerId: "user2",
+    sellerName: "Alice Smith",
+    likes: 10,
+    price: 99,
+    isSponsored: true,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Entertainment,
+    tld: "tv",
+  },
+  {
+    id: "domain9",
+    name: "fashiontrends.store",
+    expirationDate: new Date("2024-09-01"),
+    description: "Stay ahead of the curve with the latest fashion trends.",
+    sellerId: "user3",
+    sellerName: "Bob Johnson",
+    likes: 18,
+    price: 99,
+    isSponsored: false,
+    isAdminPick: false,
+    createdAt: new Date(),
+    category: DomainCategory.Fashion,
+    tld: "store",
+  },
+  {
+    id: "domain10",
+    name: "foodlovers.blog",
+    expirationDate: new Date("2024-09-15"),
+    description: "A blog dedicated to food lovers everywhere.",
+    sellerId: "user1",
+    sellerName: "John Doe",
+    likes: 25,
+    price: 99,
+    isSponsored: true,
+    isAdminPick: true,
+    createdAt: new Date(),
+    category: DomainCategory.Food,
+    tld: "blog",
+  },
+];
 
-// Mock current user
 export const currentUser: User = {
-  id: "user1",
-  email: "demo@notrenewing.com",
-  name: "Demo User",
+  id: "user123",
+  email: "test@example.com",
+  name: "Test User",
   isAdmin: true,
   isVerified: true,
-  createdAt: new Date("2023-01-01"),
+  createdAt: new Date(),
 };
 
-// Helper to generate dates relative to now
-const getNearExpirationDate = (daysFromNow: number): Date => {
-  const date = new Date();
-  date.setDate(date.getDate() + daysFromNow);
-  return date;
-};
-
-// Generate mock domains with TLDs extracted
-const createMockDomains = () => {
-  const domainsData = [
-    {
-      id: "domain1",
-      name: "greatdomain.com",
-      expirationDate: getNearExpirationDate(15),
-      description: "A fantastic domain for your next project",
-      sellerId: "user2",
-      sellerName: "Jane Smith",
-      likes: 42,
-      price: 99,
-      isSponsored: true,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-15"),
-      category: DomainCategory.Business,
-    },
-    {
-      id: "domain2",
-      name: "coolwebsite.net",
-      expirationDate: getNearExpirationDate(7),
-      description: "Perfect for tech startups",
-      sellerId: "user3",
-      sellerName: "Bob Johnson",
-      likes: 38,
-      price: 99,
-      isSponsored: false,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-16"),
-      category: DomainCategory.Technology,
-    },
-    {
-      id: "domain3",
-      name: "bestbusiness.org",
-      expirationDate: getNearExpirationDate(22),
-      description: "Ideal for non-profits and organizations",
-      sellerId: "user4",
-      sellerName: "Alice Brown",
-      likes: 56,
-      price: 99,
-      isSponsored: true,
-      isAdminPick: false,
-      createdAt: new Date("2023-03-10"),
-      category: DomainCategory.Business,
-    },
-    {
-      id: "domain4",
-      name: "techstore.io",
-      expirationDate: getNearExpirationDate(5),
-      description: "Modern domain for tech products",
-      sellerId: "user5",
-      sellerName: "Chris Davis",
-      likes: 31,
-      price: 99,
-      isSponsored: false,
-      isAdminPick: false,
-      createdAt: new Date("2023-03-18"),
-      category: DomainCategory.Technology,
-    },
-    {
-      id: "domain5",
-      name: "cryptoinvest.com",
-      expirationDate: getNearExpirationDate(11),
-      description: "Premium finance and crypto domain",
-      sellerId: "user6",
-      sellerName: "Sam Wilson",
-      likes: 67,
-      price: 99,
-      isSponsored: true,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-05"),
-      category: DomainCategory.Finance,
-    },
-    {
-      id: "domain6",
-      name: "travelguides.net",
-      expirationDate: getNearExpirationDate(19),
-      description: "Perfect for travel bloggers",
-      sellerId: "user7",
-      sellerName: "Emma Taylor",
-      likes: 29,
-      price: 99,
-      isSponsored: false,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-20"),
-      category: DomainCategory.Travel,
-    },
-    {
-      id: "domain7",
-      name: "recipebook.com",
-      expirationDate: getNearExpirationDate(3),
-      description: "Great for food bloggers and chefs",
-      sellerId: "user8",
-      sellerName: "Michael Green",
-      likes: 51,
-      price: 99,
-      isSponsored: true,
-      isAdminPick: false,
-      createdAt: new Date("2023-03-12"),
-      category: DomainCategory.Food,
-    },
-    {
-      id: "domain8",
-      name: "fitnesslife.org",
-      expirationDate: getNearExpirationDate(28),
-      description: "Perfect for fitness trainers",
-      sellerId: "user9",
-      sellerName: "Lisa Robinson",
-      likes: 44,
-      price: 99,
-      isSponsored: false,
-      isAdminPick: false,
-      createdAt: new Date("2023-03-08"),
-      category: DomainCategory.Health,
-    },
-    {
-      id: "domain9",
-      name: "artgallery.net",
-      expirationDate: getNearExpirationDate(9),
-      description: "Showcase your creative work",
-      sellerId: "user10",
-      sellerName: "David Black",
-      likes: 36,
-      price: 99,
-      isSponsored: true,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-25"),
-      category: DomainCategory.Entertainment,
-    },
-    {
-      id: "domain10",
-      name: "petrescue.org",
-      expirationDate: getNearExpirationDate(14),
-      description: "Support animal welfare causes",
-      sellerId: "user11",
-      sellerName: "Sarah White",
-      likes: 62,
-      price: 99,
-      isSponsored: false,
-      isAdminPick: true,
-      createdAt: new Date("2023-03-01"),
-      category: DomainCategory.Other,
-    },
-  ];
-
-  // Add TLD to each domain
-  return domainsData.map(domain => ({
-    ...domain,
-    tld: extractTLD(domain.name)
-  }));
-};
-
-// Create the domains with TLDs
-export const mockDomains: Domain[] = createMockDomains();
-
-export const getLeaderboard = (type: LeaderboardType): Domain[] => {
-  let filteredDomains = [...mockDomains];
+export const getLeaderboard = (type: LeaderboardType, customDomains?: Domain[]): Domain[] => {
+  const domains = customDomains || mockDomains;
   
   switch (type) {
     case LeaderboardType.MostLiked:
-      return filteredDomains.sort((a, b) => b.likes - a.likes).slice(0, 10);
+      return [...domains].sort((a, b) => b.likes - a.likes);
     case LeaderboardType.AdminPicks:
-      return filteredDomains.filter(domain => domain.isAdminPick).slice(0, 10);
+      return domains.filter(domain => domain.isAdminPick);
     case LeaderboardType.Sponsored:
-      return filteredDomains.filter(domain => domain.isSponsored).slice(0, 10);
+      return domains.filter(domain => domain.isSponsored);
     default:
-      return filteredDomains.slice(0, 10);
+      return domains;
   }
 };
-
-// Function to emulate API calls with a delay
-export function delay<T>(data: T, ms = 500): Promise<T> {
-  return new Promise(resolve => setTimeout(() => resolve(data), ms));
-}

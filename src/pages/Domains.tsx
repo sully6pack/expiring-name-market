@@ -40,8 +40,32 @@ const Domains = () => {
   const domainsPerPage = 40; // Increased from 8 to 40
 
   useEffect(() => {
-    // Use the global domains array if it exists, otherwise use mockDomains
-    const allDomains = window.globalDomains || mockDomains;
+    // Try to load domains from localStorage first
+    let allDomains: Domain[] = [];
+    
+    try {
+      const storedDomains = localStorage.getItem('globalDomains');
+      if (storedDomains) {
+        // Parse the stored domains and fix date objects
+        const parsedDomains = JSON.parse(storedDomains);
+        allDomains = parsedDomains.map((domain: any) => ({
+          ...domain,
+          expirationDate: new Date(domain.expirationDate),
+          createdAt: new Date(domain.createdAt)
+        }));
+      } else {
+        // Fallback to global domains or mock data
+        allDomains = window.globalDomains || mockDomains;
+      }
+    } catch (error) {
+      console.error('Error loading domains from localStorage:', error);
+      // Fallback to global domains or mock data
+      allDomains = window.globalDomains || mockDomains;
+    }
+    
+    // Update the global domains variable
+    window.globalDomains = allDomains;
+    
     setDomains(allDomains);
     setFilteredDomains(allDomains);
     

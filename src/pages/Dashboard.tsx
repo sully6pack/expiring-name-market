@@ -45,6 +45,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Ensure we're working with the latest globalDomains
+    if (!window.globalDomains) {
+      window.globalDomains = [...mockDomains];
+    }
     setMyDomains(window.globalDomains.filter(domain => domain.sellerId === currentUser.id));
     setInterestedBuyers([
       { 
@@ -97,6 +101,11 @@ const Dashboard = () => {
     }
 
     setTimeout(() => {
+      // Ensure we're working with the latest globalDomains
+      if (!window.globalDomains) {
+        window.globalDomains = [...mockDomains];
+      }
+      
       toast({
         title: "Domain Listed",
         description: `${domainName} has been successfully listed`,
@@ -118,9 +127,9 @@ const Dashboard = () => {
         tld,
       };
       
-      // Add to the global domains list and the local state
-      window.globalDomains.push(newDomain);
-      setMyDomains([newDomain, ...myDomains]);
+      // Add to the global domains list and update the local state
+      window.globalDomains = [...window.globalDomains, newDomain];
+      setMyDomains(prevDomains => [newDomain, ...prevDomains]);
       
       // Reset form fields
       setDomainName("");
@@ -128,6 +137,13 @@ const Dashboard = () => {
       setExpirationDate(addDays(new Date(), 14));
       setCategory(DomainCategory.Business);
       setIsSubmitting(false);
+      
+      // Store updated domains in localStorage for persistence across page refreshes
+      try {
+        localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+      } catch (error) {
+        console.error('Error saving domains to localStorage:', error);
+      }
     }, 1000);
   };
 
