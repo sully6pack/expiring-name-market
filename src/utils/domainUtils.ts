@@ -1,4 +1,6 @@
 
+import { Domain } from "@/types";
+
 /**
  * Extracts the Top-Level Domain (TLD) from a domain name
  * @param domainName Full domain name (e.g., example.com, sub.example.co.uk)
