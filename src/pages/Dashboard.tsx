@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,13 +12,24 @@ import { format, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { mockDomains, currentUser } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import DomainCard from "@/components/DomainCard";
 import { Domain, DomainCategory } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Select, 
   SelectContent, 
@@ -38,6 +50,7 @@ const Dashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myDomains, setMyDomains] = useState<Domain[]>([]);
   const [interestedBuyers, setInterestedBuyers] = useState<{ domainId: string; buyerName: string; email: string }[]>([]);
+  const [domainToDelete, setDomainToDelete] = useState<Domain | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -139,6 +152,36 @@ const Dashboard = () => {
     }, 1000);
   };
 
+  const handleDeleteDomain = () => {
+    if (!domainToDelete) return;
+    
+    if (!window.globalDomains) {
+      window.globalDomains = [...mockDomains];
+    }
+    
+    // Filter out the domain to delete
+    window.globalDomains = window.globalDomains.filter(domain => domain.id !== domainToDelete.id);
+    
+    // Update local state
+    setMyDomains(prevDomains => prevDomains.filter(domain => domain.id !== domainToDelete.id));
+    
+    // Show confirmation toast
+    toast({
+      title: "Domain Removed",
+      description: `${domainToDelete.name} has been removed from your inventory`,
+    });
+    
+    // Reset the domain to delete
+    setDomainToDelete(null);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+    } catch (error) {
+      console.error('Error saving domains to localStorage:', error);
+    }
+  };
+
   if (!currentUser) {
     navigate("/");
     return null;
@@ -163,7 +206,18 @@ const Dashboard = () => {
             {myDomains.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myDomains.map((domain) => (
-                  <DomainCard key={domain.id} domain={domain} />
+                  <div key={domain.id} className="relative">
+                    <DomainCard domain={domain} />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 bg-white rounded-full p-0 shadow-md hover:bg-gray-100"
+                      onClick={() => setDomainToDelete(domain)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <span className="sr-only">Delete domain</span>
+                    </Button>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -360,6 +414,25 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!domainToDelete} onOpenChange={(open) => !open && setDomainToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Domain</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {domainToDelete?.name} from your inventory?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDomain} className="bg-red-500 hover:bg-red-600">
+              Remove Domain
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
