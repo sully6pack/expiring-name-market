@@ -17,6 +17,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { getUniqueTLDs } from "@/utils/domainUtils";
+import { filterValidDomains } from "@/utils/validation";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -52,6 +53,9 @@ const Index = () => {
       // Fallback to global domains or mock data
       allDomains = window.globalDomains || mockDomains;
     }
+    
+    // Filter domains that are valid for display
+    allDomains = filterValidDomains(allDomains);
     
     // Update the global domains variable
     window.globalDomains = allDomains;

@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getUniqueTLDs } from "@/utils/domainUtils";
+import { filterValidDomains } from "@/utils/validation";
 
 const Domains = () => {
   const location = useLocation();
@@ -62,6 +63,9 @@ const Domains = () => {
       // Fallback to global domains or mock data
       allDomains = window.globalDomains || mockDomains;
     }
+    
+    // Filter domains that are valid for display
+    allDomains = filterValidDomains(allDomains);
     
     // Update the global domains variable
     window.globalDomains = allDomains;

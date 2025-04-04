@@ -45,3 +45,18 @@ export function getDaysUntilExpiration(expirationDate: Date): string {
   
   return diffDays === 0 ? 'Expires today' : `Expires in ${diffDays} days`;
 }
+
+/**
+ * Filters out domains that are not valid for display
+ * (expired more than 15 days ago or expiring more than 90 days in the future)
+ */
+export function filterValidDomains(domains: any[]): any[] {
+  return domains.filter(domain => {
+    // Ensure the expiration date is a Date object
+    const expirationDate = domain.expirationDate instanceof Date 
+      ? domain.expirationDate 
+      : new Date(domain.expirationDate);
+    
+    return isDomainValid(expirationDate);
+  });
+}
