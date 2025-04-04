@@ -1,5 +1,5 @@
 
-import { Domain, User, LeaderboardType } from "../types";
+import { Domain, User, LeaderboardType, DomainCategory } from "../types";
 
 // Mock current user
 export const currentUser: User = {
@@ -32,6 +32,7 @@ export const mockDomains: Domain[] = [
     isSponsored: true,
     isAdminPick: true,
     createdAt: new Date("2023-03-15"),
+    category: DomainCategory.Business,
   },
   {
     id: "domain2",
@@ -45,6 +46,7 @@ export const mockDomains: Domain[] = [
     isSponsored: false,
     isAdminPick: true,
     createdAt: new Date("2023-03-16"),
+    category: DomainCategory.Technology,
   },
   {
     id: "domain3",
@@ -58,6 +60,7 @@ export const mockDomains: Domain[] = [
     isSponsored: true,
     isAdminPick: false,
     createdAt: new Date("2023-03-10"),
+    category: DomainCategory.Business,
   },
   {
     id: "domain4",
@@ -71,6 +74,7 @@ export const mockDomains: Domain[] = [
     isSponsored: false,
     isAdminPick: false,
     createdAt: new Date("2023-03-18"),
+    category: DomainCategory.Technology,
   },
   {
     id: "domain5",
@@ -84,6 +88,7 @@ export const mockDomains: Domain[] = [
     isSponsored: true,
     isAdminPick: true,
     createdAt: new Date("2023-03-05"),
+    category: DomainCategory.Finance,
   },
   {
     id: "domain6",
@@ -97,6 +102,7 @@ export const mockDomains: Domain[] = [
     isSponsored: false,
     isAdminPick: true,
     createdAt: new Date("2023-03-20"),
+    category: DomainCategory.Travel,
   },
   {
     id: "domain7",
@@ -110,6 +116,7 @@ export const mockDomains: Domain[] = [
     isSponsored: true,
     isAdminPick: false,
     createdAt: new Date("2023-03-12"),
+    category: DomainCategory.Food,
   },
   {
     id: "domain8",
@@ -123,6 +130,7 @@ export const mockDomains: Domain[] = [
     isSponsored: false,
     isAdminPick: false,
     createdAt: new Date("2023-03-08"),
+    category: DomainCategory.Health,
   },
   {
     id: "domain9",
@@ -136,6 +144,7 @@ export const mockDomains: Domain[] = [
     isSponsored: true,
     isAdminPick: true,
     createdAt: new Date("2023-03-25"),
+    category: DomainCategory.Entertainment,
   },
   {
     id: "domain10",
@@ -149,6 +158,7 @@ export const mockDomains: Domain[] = [
     isSponsored: false,
     isAdminPick: true,
     createdAt: new Date("2023-03-01"),
+    category: DomainCategory.Other,
   },
 ];
 

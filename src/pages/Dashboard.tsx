@@ -16,13 +16,21 @@ import { CalendarIcon } from "lucide-react";
 import { mockDomains, currentUser } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import DomainCard from "@/components/DomainCard";
-import { Domain } from "@/types";
+import { Domain, DomainCategory } from "@/types";
 import { isDomainValid } from "@/utils/validation";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 const Dashboard = () => {
   const [domainName, setDomainName] = useState("");
   const [description, setDescription] = useState("");
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(addDays(new Date(), 14));
+  const [category, setCategory] = useState<DomainCategory>(DomainCategory.Business);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myDomains, setMyDomains] = useState<Domain[]>([]);
   const [interestedBuyers, setInterestedBuyers] = useState<{ domainId: string; buyerName: string; email: string }[]>([]);
@@ -83,6 +91,7 @@ const Dashboard = () => {
       setDomainName("");
       setDescription("");
       setExpirationDate(addDays(new Date(), 14));
+      setCategory(DomainCategory.Business);
       setIsSubmitting(false);
       
       // In a real app, we would fetch the updated list from the API
@@ -98,6 +107,7 @@ const Dashboard = () => {
         isSponsored: false,
         isAdminPick: false,
         createdAt: new Date(),
+        category,
       };
       
       setMyDomains([newDomain, ...myDomains]);
@@ -162,6 +172,25 @@ const Dashboard = () => {
                       onChange={(e) => setDomainName(e.target.value)}
                       required
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={category} onValueChange={(value) => setCategory(value as DomainCategory)}>
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(DomainCategory).map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Select the most appropriate category for your domain
+                    </p>
                   </div>
                   
                   <div className="space-y-2">

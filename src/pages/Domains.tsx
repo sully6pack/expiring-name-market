@@ -11,7 +11,7 @@ import {
 import Navbar from "@/components/Navbar";
 import DomainCard from "@/components/DomainCard";
 import { mockDomains } from "@/lib/mockData";
-import { Domain } from "@/types";
+import { Domain, DomainCategory } from "@/types";
 import { 
   Select, 
   SelectContent, 
@@ -28,6 +28,7 @@ const Domains = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<string>("expiration-asc");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   
   const domainsPerPage = 8;
 
@@ -48,6 +49,11 @@ const Domains = () => {
       );
     }
     
+    // Apply category filter
+    if (categoryFilter !== "all") {
+      result = result.filter(domain => domain.category === categoryFilter);
+    }
+    
     // Apply sorting
     result.sort((a, b) => {
       switch (sortOrder) {
@@ -59,13 +65,17 @@ const Domains = () => {
           return b.likes - a.likes;
         case "alphabetical":
           return a.name.localeCompare(b.name);
+        case "category":
+          return a.category.localeCompare(b.category);
         default:
           return 0;
       }
     });
     
     setFilteredDomains(result);
-  }, [domains, searchTerm, sortOrder]);
+    // Reset to first page when filters change
+    setCurrentPage(1);
+  }, [domains, searchTerm, sortOrder, categoryFilter]);
 
   // Calculate pagination
   const indexOfLastDomain = currentPage * domainsPerPage;
@@ -98,6 +108,21 @@ const Domains = () => {
               />
             </div>
             <div className="w-full md:w-48">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {Object.values(DomainCategory).map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-48">
               <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sort by" />
@@ -107,6 +132,7 @@ const Domains = () => {
                   <SelectItem value="expiration-desc">Expiration (Later First)</SelectItem>
                   <SelectItem value="popularity">Most Popular</SelectItem>
                   <SelectItem value="alphabetical">Alphabetical (A-Z)</SelectItem>
+                  <SelectItem value="category">Category</SelectItem>
                 </SelectContent>
               </Select>
             </div>

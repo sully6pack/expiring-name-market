@@ -20,6 +20,20 @@ export interface Domain {
   isSponsored: boolean;
   isAdminPick: boolean;
   createdAt: Date;
+  category: DomainCategory;
+}
+
+export enum DomainCategory {
+  Business = "business",
+  Technology = "technology",
+  Health = "health",
+  Education = "education",
+  Entertainment = "entertainment",
+  Finance = "finance",
+  Travel = "travel",
+  Food = "food",
+  Fashion = "fashion",
+  Other = "other"
 }
 
 export enum LeaderboardType {

@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Domain } from "@/types";
 import { formatDate, getDaysUntilExpiration } from "@/utils/validation";
-import { Heart } from "lucide-react";
+import { Heart, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DomainCardProps {
@@ -59,6 +60,12 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-muted-foreground mb-4">{domain.description}</p>
+        <div className="mb-3">
+          <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+            <Tag size={14} />
+            {domain.category.charAt(0).toUpperCase() + domain.category.slice(1)}
+          </Badge>
+        </div>
         {showExpiration && (
           <div className="mb-4">
             <p className="text-sm">
