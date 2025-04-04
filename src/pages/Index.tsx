@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import DomainCard from "@/components/DomainCard";
@@ -19,6 +19,7 @@ import {
 import { getUniqueTLDs } from "@/utils/domainUtils";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [featuredDomains, setFeaturedDomains] = useState<Domain[]>([]);
   const [filteredFeaturedDomains, setFilteredFeaturedDomains] = useState<Domain[]>([]);
   const [mostLiked, setMostLiked] = useState<Domain[]>([]);
@@ -62,7 +63,12 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // The filtering is handled by the useEffect
+    // Redirect to domains page with search params
+    const searchParams = new URLSearchParams();
+    if (searchTerm) searchParams.append("search", searchTerm);
+    if (tldFilter !== "all") searchParams.append("tld", tldFilter);
+    
+    navigate(`/domains?${searchParams.toString()}`);
   };
 
   return (
