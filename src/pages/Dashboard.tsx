@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -27,8 +26,6 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
-// Create a global variable to store domains across the application
-// This is a simple solution for this mock app - in a real app you'd use a state management solution
 if (!window.globalDomains) {
   window.globalDomains = [...mockDomains];
 }
@@ -45,7 +42,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Ensure we're working with the latest globalDomains
     if (!window.globalDomains) {
       window.globalDomains = [...mockDomains];
     }
@@ -82,7 +78,7 @@ const Dashboard = () => {
       toast({
         variant: "destructive",
         title: "Invalid Expiration Date",
-        description: "Domain must be expiring within the next 30 days and not more than 30 days past expiration",
+        description: "Domain must be expiring within the next 90 days and not more than 15 days past expiration",
       });
       setIsSubmitting(false);
       return;
@@ -101,7 +97,6 @@ const Dashboard = () => {
     }
 
     setTimeout(() => {
-      // Ensure we're working with the latest globalDomains
       if (!window.globalDomains) {
         window.globalDomains = [...mockDomains];
       }
@@ -127,18 +122,15 @@ const Dashboard = () => {
         tld,
       };
       
-      // Add to the global domains list and update the local state
       window.globalDomains = [...window.globalDomains, newDomain];
       setMyDomains(prevDomains => [newDomain, ...prevDomains]);
       
-      // Reset form fields
       setDomainName("");
       setDescription("");
       setExpirationDate(addDays(new Date(), 14));
       setCategory(DomainCategory.Business);
       setIsSubmitting(false);
       
-      // Store updated domains in localStorage for persistence across page refreshes
       try {
         localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
       } catch (error) {
@@ -255,7 +247,7 @@ const Dashboard = () => {
                       </PopoverContent>
                     </Popover>
                     <p className="text-sm text-muted-foreground">
-                      Domain must be expiring within 30 days
+                      Domain must be expiring within 90 days
                     </p>
                   </div>
                   
@@ -372,7 +364,6 @@ const Dashboard = () => {
   );
 };
 
-// Add this TypeScript interface to the global Window object
 declare global {
   interface Window {
     globalDomains: Domain[];

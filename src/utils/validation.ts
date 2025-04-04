@@ -2,21 +2,22 @@
 /**
  * Validates if a domain should be displayed based on its expiration date
  * Rules:
- * 1. Must be within 30 days of expiring (to display)
- * 2. Must not have passed expiration date + 30 days
+ * 1. Must be within 90 days of expiring (to display)
+ * 2. Must not have passed expiration date + 15 days
  */
 export function isDomainValid(expirationDate: Date): boolean {
   const now = new Date();
-  const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+  const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+  const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
   
-  // Check if expiration is within 30 days (future)
-  const isWithinThirtyDays = expirationDate.getTime() - now.getTime() <= thirtyDaysInMs;
+  // Check if expiration is within 90 days (future)
+  const isWithinNinetyDays = expirationDate.getTime() - now.getTime() <= ninetyDaysInMs;
   
-  // Check if expiration + 30 days is not in the past
-  const thirtyDaysAfterExpiration = new Date(expirationDate.getTime() + thirtyDaysInMs);
-  const isNotTooLate = thirtyDaysAfterExpiration.getTime() >= now.getTime();
+  // Check if expiration + 15 days is not in the past
+  const fifteenDaysAfterExpiration = new Date(expirationDate.getTime() + fifteenDaysInMs);
+  const isNotTooLate = fifteenDaysAfterExpiration.getTime() >= now.getTime();
   
-  return isWithinThirtyDays && isNotTooLate;
+  return isWithinNinetyDays && isNotTooLate;
 }
 
 /**
