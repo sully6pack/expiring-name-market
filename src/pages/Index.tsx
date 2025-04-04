@@ -7,21 +7,63 @@ import DomainCard from "@/components/DomainCard";
 import Leaderboard from "@/components/Leaderboard";
 import Navbar from "@/components/Navbar";
 import { getLeaderboard, mockDomains } from "@/lib/mockData";
-import { LeaderboardType, Domain } from "@/types";
+import { LeaderboardType, Domain, DomainCategory } from "@/types";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { getUniqueTLDs } from "@/utils/domainUtils";
 
 const Index = () => {
   const [featuredDomains, setFeaturedDomains] = useState<Domain[]>([]);
+  const [filteredFeaturedDomains, setFilteredFeaturedDomains] = useState<Domain[]>([]);
   const [mostLiked, setMostLiked] = useState<Domain[]>([]);
   const [adminPicks, setAdminPicks] = useState<Domain[]>([]);
   const [sponsored, setSponsored] = useState<Domain[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [tldFilter, setTldFilter] = useState<string>("all");
+  const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    // In a real app, these would be API calls
-    setFeaturedDomains(mockDomains.slice(0, 4));
+    // Use the global domains array if it exists, otherwise use mockDomains
+    const allDomains = window.globalDomains || mockDomains;
+    setFeaturedDomains(allDomains.slice(0, 8));
+    setFilteredFeaturedDomains(allDomains.slice(0, 8));
     setMostLiked(getLeaderboard(LeaderboardType.MostLiked).slice(0, 3));
     setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks).slice(0, 3));
     setSponsored(getLeaderboard(LeaderboardType.Sponsored).slice(0, 3));
+    
+    // Get available TLDs
+    setAvailableTLDs(getUniqueTLDs(allDomains));
   }, []);
+
+  useEffect(() => {
+    let result = [...featuredDomains];
+    
+    // Apply search filter
+    if (searchTerm) {
+      result = result.filter(domain => 
+        domain.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        domain.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply TLD filter
+    if (tldFilter !== "all") {
+      result = result.filter(domain => domain.tld === tldFilter);
+    }
+    
+    setFilteredFeaturedDomains(result);
+  }, [featuredDomains, searchTerm, tldFilter]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // The filtering is handled by the useEffect
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -51,8 +93,44 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Search Section */}
+      <section className="py-8 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">Quick Search</h2>
+            <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+              <div className="flex-grow">
+                <Input
+                  type="text"
+                  placeholder="Search domains..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <Select value={tldFilter} onValueChange={setTldFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="TLD" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All TLDs</SelectItem>
+                    {availableTLDs.map((tld) => (
+                      <SelectItem key={tld} value={tld}>
+                        {tld}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit">Search</Button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           
@@ -88,11 +166,17 @@ const Index = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8">Featured Domains</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredDomains.map((domain) => (
-              <DomainCard key={domain.id} domain={domain} />
-            ))}
-          </div>
+          {filteredFeaturedDomains.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredFeaturedDomains.map((domain) => (
+                <DomainCard key={domain.id} domain={domain} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-lg text-gray-500">No domains found matching your search criteria.</p>
+            </div>
+          )}
           <div className="text-center mt-8">
             <Link to="/domains">
               <Button variant="outline">View All Domains</Button>

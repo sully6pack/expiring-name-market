@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getUniqueTLDs } from "@/utils/domainUtils";
 
 const Domains = () => {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -29,6 +30,8 @@ const Domains = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<string>("expiration-asc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [tldFilter, setTldFilter] = useState<string>("all");
+  const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
   
   const domainsPerPage = 8;
 
@@ -37,6 +40,9 @@ const Domains = () => {
     const allDomains = window.globalDomains || mockDomains;
     setDomains(allDomains);
     setFilteredDomains(allDomains);
+    
+    // Get available TLDs
+    setAvailableTLDs(getUniqueTLDs(allDomains));
   }, []);
 
   useEffect(() => {
@@ -53,6 +59,11 @@ const Domains = () => {
     // Apply category filter
     if (categoryFilter !== "all") {
       result = result.filter(domain => domain.category === categoryFilter);
+    }
+    
+    // Apply TLD filter
+    if (tldFilter !== "all") {
+      result = result.filter(domain => domain.tld === tldFilter);
     }
     
     // Apply sorting
@@ -76,7 +87,7 @@ const Domains = () => {
     setFilteredDomains(result);
     // Reset to first page when filters change
     setCurrentPage(1);
-  }, [domains, searchTerm, sortOrder, categoryFilter]);
+  }, [domains, searchTerm, sortOrder, categoryFilter, tldFilter]);
 
   // Calculate pagination
   const indexOfLastDomain = currentPage * domainsPerPage;
@@ -118,6 +129,21 @@ const Domains = () => {
                   {Object.values(DomainCategory).map((category) => (
                     <SelectItem key={category} value={category}>
                       {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-48">
+              <Select value={tldFilter} onValueChange={setTldFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="TLD" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All TLDs</SelectItem>
+                  {availableTLDs.map((tld) => (
+                    <SelectItem key={tld} value={tld}>
+                      {tld}
                     </SelectItem>
                   ))}
                 </SelectContent>
