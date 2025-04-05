@@ -164,62 +164,92 @@ export const currentUser: User = {
 };
 
 export const initializeGlobalDomains = () => {
-  if (typeof window !== 'undefined') {
-    try {
-      console.log('Initializing global domains...');
-      
-      // Create window.globalDomains if it doesn't exist
-      if (!window.globalDomains) {
-        window.globalDomains = [];
-      }
-      
-      // First try to load from localStorage
-      const storedDomains = localStorage.getItem('globalDomains');
-      
-      if (!storedDomains) {
-        // If localStorage is empty, initialize with mockDomains
-        console.log('No domains in localStorage, initializing with mockDomains');
-        const serializedDomains = JSON.stringify(mockDomains);
-        localStorage.setItem('globalDomains', serializedDomains);
-        window.globalDomains = [...mockDomains];
-      } else {
-        try {
-          // Parse stored domains and fix date objects
-          console.log('Found domains in localStorage, loading them');
-          const parsedDomains = JSON.parse(storedDomains);
-          
-          // Handle the case where localStorage might have invalid data
-          if (!Array.isArray(parsedDomains) || parsedDomains.length === 0) {
-            console.log('Invalid or empty domains in localStorage, resetting to mockDomains');
-            localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
-            window.globalDomains = [...mockDomains];
-          } else {
-            // Convert ISO date strings back to Date objects
-            const domainsWithDates = parsedDomains.map((domain: any) => ({
-              ...domain,
-              expirationDate: new Date(domain.expirationDate),
-              createdAt: new Date(domain.createdAt)
-            }));
-            
-            window.globalDomains = domainsWithDates;
-          }
-        } catch (error) {
-          console.error('Error parsing domains from localStorage:', error);
-          // Fallback to mockDomains if there's an error parsing
-          localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
-          window.globalDomains = [...mockDomains];
-        }
-      }
-      
-      console.log('Domains initialization complete:', {
-        windowGlobalDomains: window.globalDomains.length,
-        mockDomains: mockDomains.length
-      });
-    } catch (error) {
-      console.error('Error initializing globalDomains:', error);
-      // Final fallback
-      window.globalDomains = [...mockDomains];
+  if (typeof window === 'undefined') return;
+  
+  try {
+    console.log('Initializing global domains...');
+    
+    // Directly define window.globalDomains as an empty array if it doesn't exist
+    if (!window.globalDomains || !Array.isArray(window.globalDomains)) {
+      window.globalDomains = [];
     }
+    
+    // First try to load from localStorage
+    let storedDomains;
+    try {
+      storedDomains = localStorage.getItem('globalDomains');
+    } catch (e) {
+      console.error('Error accessing localStorage:', e);
+      storedDomains = null;
+    }
+    
+    if (!storedDomains) {
+      // If localStorage is empty, initialize with mockDomains
+      console.log('No domains in localStorage, initializing with mockDomains');
+      
+      try {
+        localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
+      } catch (e) {
+        console.error('Error setting localStorage:', e);
+      }
+      
+      // Important: Directly set window.globalDomains to mockDomains
+      window.globalDomains = mockDomains.map(domain => ({
+        ...domain,
+        expirationDate: new Date(domain.expirationDate),
+        createdAt: new Date(domain.createdAt)
+      }));
+    } else {
+      try {
+        // Parse stored domains
+        console.log('Found domains in localStorage, loading them');
+        const parsedDomains = JSON.parse(storedDomains);
+        
+        // Handle the case where localStorage might have invalid data
+        if (!Array.isArray(parsedDomains) || parsedDomains.length === 0) {
+          console.log('Invalid or empty domains in localStorage, resetting to mockDomains');
+          localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
+          window.globalDomains = mockDomains.map(domain => ({
+            ...domain,
+            expirationDate: new Date(domain.expirationDate),
+            createdAt: new Date(domain.createdAt)
+          }));
+        } else {
+          // Convert ISO date strings back to Date objects
+          const domainsWithDates = parsedDomains.map((domain: any) => ({
+            ...domain,
+            expirationDate: new Date(domain.expirationDate),
+            createdAt: new Date(domain.createdAt)
+          }));
+          
+          // Directly assign to window.globalDomains
+          window.globalDomains = domainsWithDates;
+        }
+      } catch (error) {
+        console.error('Error parsing domains from localStorage:', error);
+        // Fallback to mockDomains if there's an error parsing
+        localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
+        window.globalDomains = mockDomains.map(domain => ({
+          ...domain,
+          expirationDate: new Date(domain.expirationDate),
+          createdAt: new Date(domain.createdAt)
+        }));
+      }
+    }
+    
+    console.log('Domains initialization complete:', {
+      windowGlobalDomainsLength: window.globalDomains.length,
+      mockDomainsLength: mockDomains.length,
+      windowGlobalDomains: window.globalDomains
+    });
+  } catch (error) {
+    console.error('Error initializing globalDomains:', error);
+    // Final fallback
+    window.globalDomains = mockDomains.map(domain => ({
+      ...domain,
+      expirationDate: new Date(domain.expirationDate),
+      createdAt: new Date(domain.createdAt)
+    }));
   }
 };
 

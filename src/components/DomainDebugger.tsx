@@ -1,6 +1,5 @@
 
 import { useEffect, useState } from 'react';
-import { Domain } from '@/types';
 import { mockDomains } from '@/lib/mockData';
 
 const DomainDebugger = () => {
@@ -16,7 +15,7 @@ const DomainDebugger = () => {
     domainsDisplay: 0,
   });
 
-  // Update debug info every second (more frequent updates)
+  // Update debug info every 500ms (more frequent updates)
   useEffect(() => {
     const updateDebugInfo = () => {
       try {
@@ -51,8 +50,8 @@ const DomainDebugger = () => {
     // Update immediately
     updateDebugInfo();
     
-    // Then update every 1 second (more frequent than before)
-    const interval = setInterval(updateDebugInfo, 1000);
+    // Then update every 500ms (more frequent than before)
+    const interval = setInterval(updateDebugInfo, 500);
     
     return () => clearInterval(interval);
   }, []);
@@ -61,10 +60,39 @@ const DomainDebugger = () => {
     try {
       // Force sync mockDomains to both localStorage and window.globalDomains
       localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
+      
+      // Make sure window.globalDomains is an array
+      if (!window.globalDomains || !Array.isArray(window.globalDomains)) {
+        window.globalDomains = [];
+      }
+      
+      // Directly assign mockDomains to window.globalDomains
       window.globalDomains = [...mockDomains];
-      console.log('Manually synced domains from mockData');
+      
+      console.log('Manually synced domains from mockData', {
+        mockDomainsLength: mockDomains.length,
+        windowGlobalDomainsLength: window.globalDomains.length
+      });
+      
+      // Force page reload to ensure all components use the new data
+      window.location.reload();
     } catch (error) {
       console.error('Error in manual sync:', error);
+    }
+  };
+
+  const handleResetData = () => {
+    try {
+      localStorage.removeItem('globalDomains');
+      window.globalDomains = [...mockDomains];
+      localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
+      console.log('Reset data complete', {
+        mockDomainsLength: mockDomains.length,
+        windowGlobalDomainsLength: window.globalDomains.length
+      });
+      window.location.reload();
+    } catch (error) {
+      console.error('Error in reset data:', error);
     }
   };
 
@@ -82,13 +110,10 @@ const DomainDebugger = () => {
           onClick={handleForceSync}
           className="px-2 py-0.5 bg-green-500 text-white text-xs rounded hover:bg-green-600"
         >
-          Force Sync
+          Force Sync & Reload
         </button>
         <button 
-          onClick={() => {
-            localStorage.removeItem('globalDomains');
-            window.location.reload();
-          }}
+          onClick={handleResetData}
           className="px-2 py-0.5 bg-red-500 text-white text-xs rounded hover:bg-red-600"
         >
           Reset Data
