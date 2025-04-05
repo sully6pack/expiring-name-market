@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import DomainCard from "@/components/DomainCard";
 import Leaderboard from "@/components/Leaderboard";
 import Navbar from "@/components/Navbar";
-import { getLeaderboard, mockDomains } from "@/lib/mockData";
+import { getLeaderboard, mockDomains, initializeGlobalDomains } from "@/lib/mockData";
 import { LeaderboardType, Domain, DomainCategory } from "@/types";
 import { Input } from "@/components/ui/input";
 import { 
@@ -31,27 +31,38 @@ const Index = () => {
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    // Try to load domains from localStorage first
+    // Ensure global domains are initialized
+    initializeGlobalDomains();
+    
+    // Try to load domains from window.globalDomains first
     let allDomains: Domain[] = [];
     
-    try {
-      const storedDomains = localStorage.getItem('globalDomains');
-      if (storedDomains) {
-        // Parse the stored domains and fix date objects
-        const parsedDomains = JSON.parse(storedDomains);
-        allDomains = parsedDomains.map((domain: any) => ({
-          ...domain,
-          expirationDate: new Date(domain.expirationDate),
-          createdAt: new Date(domain.createdAt)
-        }));
-      } else {
-        // Fallback to global domains or mock data
-        allDomains = window.globalDomains || mockDomains;
+    if (window.globalDomains && window.globalDomains.length > 0) {
+      console.log('Using window.globalDomains:', window.globalDomains);
+      allDomains = window.globalDomains;
+    } else {
+      // Try localStorage as fallback
+      try {
+        const storedDomains = localStorage.getItem('globalDomains');
+        if (storedDomains) {
+          console.log('Using localStorage domains');
+          // Parse the stored domains and fix date objects
+          const parsedDomains = JSON.parse(storedDomains);
+          allDomains = parsedDomains.map((domain: any) => ({
+            ...domain,
+            expirationDate: new Date(domain.expirationDate),
+            createdAt: new Date(domain.createdAt)
+          }));
+        } else {
+          // Final fallback to mock data
+          console.log('Using mockDomains as fallback');
+          allDomains = [...mockDomains];
+        }
+      } catch (error) {
+        console.error('Error loading domains:', error);
+        // Final fallback to mock data
+        allDomains = [...mockDomains];
       }
-    } catch (error) {
-      console.error('Error loading domains from localStorage:', error);
-      // Fallback to global domains or mock data
-      allDomains = window.globalDomains || mockDomains;
     }
     
     // Filter domains that are valid for display
@@ -59,6 +70,11 @@ const Index = () => {
     
     // Update the global domains variable
     window.globalDomains = allDomains;
+    
+    // Force sync with localStorage
+    localStorage.setItem('globalDomains', JSON.stringify(allDomains));
+    
+    console.log('Final domains being used:', allDomains);
     
     setFeaturedDomains(allDomains.slice(0, 8));
     setFilteredFeaturedDomains(allDomains.slice(0, 8));

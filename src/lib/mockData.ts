@@ -1,3 +1,4 @@
+
 import { User, Domain, DomainCategory, LeaderboardType } from "@/types";
 
 export const mockDomains: Domain[] = [
@@ -165,12 +166,17 @@ export const currentUser: User = {
 export const initializeGlobalDomains = () => {
   if (typeof window !== 'undefined') {
     try {
+      // Define window.globalDomains if it doesn't exist
+      if (!window.globalDomains) {
+        window.globalDomains = [];
+      }
+      
       const storedDomains = localStorage.getItem('globalDomains');
       if (!storedDomains) {
         console.log('Initializing globalDomains in localStorage with mockDomains');
         localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
         // Also set window.globalDomains for immediate use
-        window.globalDomains = mockDomains;
+        window.globalDomains = [...mockDomains];
       } else {
         console.log('globalDomains already exists in localStorage');
         // Parse stored domains and set to window.globalDomains
@@ -181,9 +187,11 @@ export const initializeGlobalDomains = () => {
           createdAt: new Date(domain.createdAt)
         }));
       }
+      
+      console.log('Window global domains after initialization:', window.globalDomains);
     } catch (error) {
       console.error('Error initializing globalDomains:', error);
-      window.globalDomains = mockDomains;
+      window.globalDomains = [...mockDomains];
     }
   }
 };
