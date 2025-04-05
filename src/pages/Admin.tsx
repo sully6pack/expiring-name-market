@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -8,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { mockDomains, currentUser } from "@/lib/mockData";
-import { Domain } from "@/types";
+import { Domain, User } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/validation";
+import { getUserManagementInfo } from "@/services/adminService";
+import UserManagementTab from "@/components/admin/UserManagementTab";
 
 const Admin = () => {
   const [domains, setDomains] = useState<Domain[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,9 +32,10 @@ const Admin = () => {
       return;
     }
     
-    // Simulate API call to fetch all domains
+    // Simulate API call to fetch all domains and users
     setTimeout(() => {
       setDomains(mockDomains);
+      setUsers(getUserManagementInfo()); // Get users from adminService
       setIsLoading(false);
     }, 1000);
   }, [navigate, toast]);
@@ -179,14 +182,7 @@ const Admin = () => {
           </TabsContent>
           
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center py-8">User management functionality will be implemented in a future version.</p>
-              </CardContent>
-            </Card>
+            <UserManagementTab users={users} setUsers={setUsers} />
           </TabsContent>
           
           <TabsContent value="stats">
@@ -205,7 +201,7 @@ const Admin = () => {
                   <Card>
                     <CardContent className="pt-6">
                       <p className="text-sm text-muted-foreground">Total Users</p>
-                      <h3 className="text-3xl font-bold">12</h3>
+                      <h3 className="text-3xl font-bold">{users.length}</h3>
                     </CardContent>
                   </Card>
                   <Card>

@@ -125,21 +125,47 @@ export const getUserManagementInfo = (): User[] => {
   return [
     {
       id: "user_1",
-      email: "user1@example.com",
+      email: "john@example.com",
       name: "John Doe",
       isAdmin: false,
       isVerified: true,
       createdAt: new Date(2023, 1, 15),
+      verifiedAt: new Date(2023, 1, 16),
     },
     {
       id: "user_2",
-      email: "user2@example.com",
+      email: "jane@example.com",
       name: "Jane Smith",
       isAdmin: false,
       isVerified: false,
       createdAt: new Date(2023, 2, 20),
     },
-    // More mock users would be here
+    {
+      id: "user_3",
+      email: "admin@example.com",
+      name: "Admin User",
+      isAdmin: true,
+      isVerified: true,
+      createdAt: new Date(2022, 10, 5),
+      verifiedAt: new Date(2022, 10, 5),
+    },
+    {
+      id: "user_4",
+      email: "sarah@example.com",
+      name: "Sarah Johnson",
+      isAdmin: false,
+      isVerified: true,
+      createdAt: new Date(2023, 4, 10),
+      verifiedAt: new Date(2023, 4, 12),
+    },
+    {
+      id: "user_5",
+      email: "mike@example.com",
+      name: "Mike Wilson",
+      isAdmin: false,
+      isVerified: false,
+      createdAt: new Date(2023, 5, 25),
+    },
   ];
 };
 
