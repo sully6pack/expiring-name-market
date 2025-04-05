@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { CheckCircle, Home, Search } from "lucide-react";
+import { markDomainAsPurchased } from "@/utils/purchaseUtils";
+import { toast } from "sonner";
 
 const CheckoutSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -15,7 +17,12 @@ const CheckoutSuccess = () => {
     // If no domain name is specified, redirect to homepage
     if (!domainName) {
       navigate("/");
+      return;
     }
+    
+    // Mark the domain as purchased
+    markDomainAsPurchased(domainName);
+    toast.success(`${domainName} has been successfully purchased!`);
   }, [domainName, navigate]);
   
   return (

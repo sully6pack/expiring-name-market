@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
+import { filterOutPurchasedDomains } from "@/utils/purchaseUtils";
 import { toast } from "sonner";
 
 const Domains = () => {
@@ -46,14 +47,18 @@ const Domains = () => {
     console.log("Domains page: Loading domains from mockDomains");
     
     const validDomains = filterValidDomains([...mockDomains]);
-    console.log("Domains page: Valid domains count:", validDomains.length);
     
-    setDomains(validDomains);
-    setFilteredDomains(validDomains);
-    setAvailableTLDs(getUniqueTLDs(validDomains));
+    // Filter out purchased domains
+    const availableDomains = filterOutPurchasedDomains(validDomains);
     
-    if (validDomains.length > 0) {
-      toast.success(`Loaded ${validDomains.length} domains`);
+    console.log("Domains page: Valid domains count:", availableDomains.length);
+    
+    setDomains(availableDomains);
+    setFilteredDomains(availableDomains);
+    setAvailableTLDs(getUniqueTLDs(availableDomains));
+    
+    if (availableDomains.length > 0) {
+      toast.success(`Loaded ${availableDomains.length} domains`);
     } else {
       toast.error("Failed to load any domains");
     }

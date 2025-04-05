@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
+import { filterOutPurchasedDomains } from "@/utils/purchaseUtils";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -37,22 +38,25 @@ const Index = () => {
     // Get domains directly from mockDomains (no reliance on window.globalDomains)
     const validDomains = filterValidDomains([...mockDomains]);
     
-    console.log("Index: Valid domains count:", validDomains.length);
+    // Filter out purchased domains
+    const availableDomains = filterOutPurchasedDomains(validDomains);
+    
+    console.log("Index: Valid domains count:", availableDomains.length);
     
     // Set featured domains (first 8)
-    setFeaturedDomains(validDomains.slice(0, 8));
-    setFilteredFeaturedDomains(validDomains.slice(0, 8));
+    setFeaturedDomains(availableDomains.slice(0, 8));
+    setFilteredFeaturedDomains(availableDomains.slice(0, 8));
     
-    // Get leaderboards
-    setMostLiked(getLeaderboard(LeaderboardType.MostLiked).slice(0, 3));
-    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks).slice(0, 3));
-    setSponsored(getLeaderboard(LeaderboardType.Sponsored).slice(0, 3));
+    // Get leaderboards - also filter out purchased domains
+    setMostLiked(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.MostLiked)).slice(0, 3));
+    setAdminPicks(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.AdminPicks)).slice(0, 3));
+    setSponsored(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.Sponsored)).slice(0, 3));
     
     // Get TLDs
-    setAvailableTLDs(getUniqueTLDs(validDomains));
+    setAvailableTLDs(getUniqueTLDs(availableDomains));
     
-    if (validDomains.length > 0) {
-      toast.success(`Loaded ${validDomains.length} domains`);
+    if (availableDomains.length > 0) {
+      toast.success(`Loaded ${availableDomains.length} domains`);
     } else {
       toast.error("Failed to load any domains");
     }

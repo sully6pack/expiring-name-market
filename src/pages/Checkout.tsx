@@ -9,6 +9,7 @@ import { formatPrice } from "@/utils/domainUtils";
 import { mockDomains } from "@/lib/mockData";
 import { Domain } from "@/types";
 import Navbar from "@/components/Navbar";
+import { isDomainPurchased } from "@/utils/purchaseUtils";
 import { toast } from "sonner";
 import { CreditCard, ArrowLeft } from "lucide-react";
 
@@ -21,7 +22,15 @@ const Checkout = () => {
   useEffect(() => {
     // In a real app, you'd fetch this from an API
     const foundDomain = mockDomains.find(d => d.id === domainId);
+    
     if (foundDomain) {
+      // Check if domain has already been purchased
+      if (isDomainPurchased(foundDomain.name)) {
+        toast.error("This domain has already been purchased and is no longer available.");
+        navigate("/domains");
+        return;
+      }
+      
       setDomain(foundDomain);
     } else {
       toast.error("Domain not found");
