@@ -31,31 +31,27 @@ const Index = () => {
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    console.log("Index: Loading domains directly from mockDomains");
+    console.log("Index: Loading domains directly from mockDomains, count:", mockDomains.length);
     
-    // Use mock domains directly - no window or localStorage
-    const allDomains = mockDomains.map(domain => ({
+    const domainsWithDates = mockDomains.map(domain => ({
       ...domain,
-      expirationDate: new Date(domain.expirationDate),
-      createdAt: new Date(domain.createdAt)
+      expirationDate: domain.expirationDate instanceof Date ? domain.expirationDate : new Date(domain.expirationDate),
+      createdAt: domain.createdAt instanceof Date ? domain.createdAt : new Date(domain.createdAt)
     }));
     
-    // Filter domains that are valid for display
-    const validDomains = filterValidDomains(allDomains);
+    const validDomains = filterValidDomains(domainsWithDates);
     
-    console.log("Index: Loaded domains count:", validDomains.length);
+    console.log("Index: Valid domains count:", validDomains.length);
     
-    // Set the domains
     setFeaturedDomains(validDomains.slice(0, 8));
     setFilteredFeaturedDomains(validDomains.slice(0, 8));
+    
     setMostLiked(getLeaderboard(LeaderboardType.MostLiked, validDomains).slice(0, 3));
     setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks, validDomains).slice(0, 3));
     setSponsored(getLeaderboard(LeaderboardType.Sponsored, validDomains).slice(0, 3));
     
-    // Get available TLDs
     setAvailableTLDs(getUniqueTLDs(validDomains));
     
-    // Show a toast to notify user
     if (validDomains.length > 0) {
       toast.success(`Loaded ${validDomains.length} domains`);
     } else {
@@ -66,7 +62,6 @@ const Index = () => {
   useEffect(() => {
     let result = [...featuredDomains];
     
-    // Apply search filter
     if (searchTerm) {
       result = result.filter(domain => 
         domain.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,7 +69,6 @@ const Index = () => {
       );
     }
     
-    // Apply TLD filter
     if (tldFilter !== "all") {
       result = result.filter(domain => domain.tld === tldFilter);
     }
@@ -84,7 +78,6 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirect to domains page with search params
     const searchParams = new URLSearchParams();
     if (searchTerm) searchParams.append("search", searchTerm);
     if (tldFilter !== "all") searchParams.append("tld", tldFilter);
@@ -96,7 +89,6 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      {/* Hero Section */}
       <section className="hero-gradient text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -120,7 +112,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Search Section */}
       <section className="py-8 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
@@ -156,7 +147,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
@@ -189,7 +179,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Domains */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8">Featured Domains</h2>
@@ -212,7 +201,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Leaderboards */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8">Domain Leaderboards</h2>
@@ -236,7 +224,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-800 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between">

@@ -1,3 +1,4 @@
+
 import { User, Domain, DomainCategory, LeaderboardType } from "@/types";
 
 export const mockDomains: Domain[] = [
@@ -162,39 +163,19 @@ export const currentUser: User = {
   createdAt: new Date(),
 };
 
+// Simplified initialization function - directly uses mockDomains
 export const initializeGlobalDomains = () => {
   if (typeof window === 'undefined') return;
   
   try {
     console.log('initializeGlobalDomains: Starting domain initialization');
     
-    // Ensure window.globalDomains is defined as an array
-    if (!window.globalDomains || !Array.isArray(window.globalDomains)) {
-      console.log('initializeGlobalDomains: Creating window.globalDomains array');
-      window.globalDomains = [];
-    }
-    
-    // Clear any existing domains to start fresh
-    window.globalDomains = [];
-    
-    // Directly populate window.globalDomains from mockDomains
-    console.log('initializeGlobalDomains: Populating from mockDomains');
-    mockDomains.forEach(domain => {
-      // Create a proper copy with proper Date objects
-      window.globalDomains.push({
-        ...domain,
-        expirationDate: new Date(domain.expirationDate),
-        createdAt: new Date(domain.createdAt)
-      });
-    });
-    
-    // Also update localStorage for persistence
-    try {
-      console.log('initializeGlobalDomains: Updating localStorage');
-      localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
-    } catch (e) {
-      console.error('Error updating localStorage:', e);
-    }
+    // Set window.globalDomains directly from mockDomains with proper Date objects
+    window.globalDomains = mockDomains.map(domain => ({
+      ...domain,
+      expirationDate: new Date(domain.expirationDate),
+      createdAt: new Date(domain.createdAt)
+    }));
     
     console.log('Domain initialization complete:', {
       windowGlobalDomainsLength: window.globalDomains.length,
@@ -205,19 +186,21 @@ export const initializeGlobalDomains = () => {
     console.error('Error in initializeGlobalDomains:', error);
     
     // Final fallback
-    window.globalDomains = [];
-    mockDomains.forEach(domain => {
-      window.globalDomains.push({
-        ...domain,
-        expirationDate: new Date(domain.expirationDate),
-        createdAt: new Date(domain.createdAt)
-      });
-    });
+    window.globalDomains = mockDomains.map(domain => ({
+      ...domain,
+      expirationDate: new Date(domain.expirationDate),
+      createdAt: new Date(domain.createdAt)
+    }));
   }
 };
 
 export const getLeaderboard = (type: LeaderboardType, customDomains?: Domain[]): Domain[] => {
-  const domains = customDomains || mockDomains;
+  // Always use mockDomains directly instead of relying on customDomains
+  const domains = mockDomains.map(domain => ({
+    ...domain,
+    expirationDate: new Date(domain.expirationDate),
+    createdAt: new Date(domain.createdAt)
+  }));
   
   switch (type) {
     case LeaderboardType.MostLiked:
