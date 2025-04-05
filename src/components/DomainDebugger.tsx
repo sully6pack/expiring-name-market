@@ -1,16 +1,13 @@
 
 import { useEffect, useState } from 'react';
 import { mockDomains } from '@/lib/mockData';
+import { toast } from 'sonner';
 
 const DomainDebugger = () => {
   const [debugInfo, setDebugInfo] = useState<{
-    localStorageDomains: number;
-    windowGlobalDomains: number;
     mockDomains: number;
     domainsDisplay: number;
   }>({
-    localStorageDomains: 0,
-    windowGlobalDomains: 0,
     mockDomains: mockDomains.length,
     domainsDisplay: 0,
   });
@@ -19,29 +16,17 @@ const DomainDebugger = () => {
   useEffect(() => {
     const updateDebugInfo = () => {
       try {
-        // Check localStorage
-        const storedDomains = localStorage.getItem('globalDomains');
-        const parsedStoredDomains = storedDomains ? JSON.parse(storedDomains) : [];
-        
-        // Check window.globalDomains
-        const windowDomains = window.globalDomains || [];
-
         // Count domains currently displayed on the page
         const domainCards = document.querySelectorAll('.domain-card');
         
         setDebugInfo({
-          localStorageDomains: parsedStoredDomains.length,
-          windowGlobalDomains: windowDomains.length,
           mockDomains: mockDomains.length,
           domainsDisplay: domainCards.length,
         });
         
         console.log('Domain Debug Info:', {
-          localStorageDomains: parsedStoredDomains.length,
-          windowGlobalDomains: windowDomains.length,
           mockDomainsLength: mockDomains.length,
           domainsOnPage: domainCards.length,
-          firstWindowDomain: windowDomains.length > 0 ? windowDomains[0] : null,
           firstMockDomain: mockDomains.length > 0 ? mockDomains[0] : null
         });
       } catch (error) {
@@ -52,77 +37,30 @@ const DomainDebugger = () => {
     // Update immediately
     updateDebugInfo();
     
-    // Then update every 500ms
-    const interval = setInterval(updateDebugInfo, 500);
+    // Then update every 1000ms
+    const interval = setInterval(updateDebugInfo, 1000);
     
     return () => clearInterval(interval);
   }, []);
 
-  const handleForceSync = () => {
-    try {
-      // Force sync mockDomains to both localStorage and window.globalDomains
-      localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
-      
-      // Make sure window.globalDomains is an array
-      if (!window.globalDomains || !Array.isArray(window.globalDomains)) {
-        window.globalDomains = [];
-      }
-      
-      // Completely reset window.globalDomains to mockDomains
-      window.globalDomains = [];
-      mockDomains.forEach(domain => {
-        window.globalDomains.push({
-          ...domain,
-          expirationDate: new Date(domain.expirationDate),
-          createdAt: new Date(domain.createdAt)
-        });
-      });
-      
-      console.log('Manually synced domains - NEW APPROACH', {
-        mockDomainsLength: mockDomains.length,
-        windowGlobalDomainsLength: window.globalDomains.length,
-        firstWindowDomain: window.globalDomains.length > 0 ? window.globalDomains[0] : null
-      });
-      
-      // Force page reload to ensure all components use the new data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error in manual sync:', error);
-    }
-  };
-
-  const handleResetData = () => {
-    try {
-      localStorage.removeItem('globalDomains');
-      window.globalDomains = [];
-      console.log('Reset data complete - all data cleared');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error in reset data:', error);
-    }
+  const handleReload = () => {
+    window.location.reload();
+    toast.success("Page reloaded");
   };
 
   return (
     <div className="fixed bottom-2 right-2 bg-gray-100 p-2 text-xs rounded shadow-md z-50">
-      <p className="font-bold">Domains Loaded:</p>
+      <p className="font-bold">Domains:</p>
       <ul>
-        <li>localStorage: {debugInfo.localStorageDomains}</li>
-        <li>globalDomains: {debugInfo.windowGlobalDomains}</li>
         <li>mockDomains: {debugInfo.mockDomains}</li>
         <li>displayed: {debugInfo.domainsDisplay}</li>
       </ul>
       <div className="flex gap-1 mt-1">
         <button 
-          onClick={handleForceSync}
+          onClick={handleReload}
           className="px-2 py-0.5 bg-green-500 text-white text-xs rounded hover:bg-green-600"
         >
-          Force Sync & Reload
-        </button>
-        <button 
-          onClick={handleResetData}
-          className="px-2 py-0.5 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-        >
-          Reset Data
+          Reload Page
         </button>
       </div>
     </div>

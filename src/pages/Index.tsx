@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import DomainCard from "@/components/DomainCard";
 import Leaderboard from "@/components/Leaderboard";
 import Navbar from "@/components/Navbar";
-import { getLeaderboard, mockDomains, initializeGlobalDomains } from "@/lib/mockData";
+import { getLeaderboard, mockDomains } from "@/lib/mockData";
 import { LeaderboardType, Domain, DomainCategory } from "@/types";
 import { Input } from "@/components/ui/input";
 import { 
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -31,59 +31,36 @@ const Index = () => {
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    // Ensure global domains are initialized
-    initializeGlobalDomains();
+    console.log("Index: Loading domains directly from mockDomains");
     
-    // Try to load domains from window.globalDomains first
-    let allDomains: Domain[] = [];
-    
-    if (window.globalDomains && window.globalDomains.length > 0) {
-      console.log('Using window.globalDomains:', window.globalDomains);
-      allDomains = window.globalDomains;
-    } else {
-      // Try localStorage as fallback
-      try {
-        const storedDomains = localStorage.getItem('globalDomains');
-        if (storedDomains) {
-          console.log('Using localStorage domains');
-          // Parse the stored domains and fix date objects
-          const parsedDomains = JSON.parse(storedDomains);
-          allDomains = parsedDomains.map((domain: any) => ({
-            ...domain,
-            expirationDate: new Date(domain.expirationDate),
-            createdAt: new Date(domain.createdAt)
-          }));
-        } else {
-          // Final fallback to mock data
-          console.log('Using mockDomains as fallback');
-          allDomains = [...mockDomains];
-        }
-      } catch (error) {
-        console.error('Error loading domains:', error);
-        // Final fallback to mock data
-        allDomains = [...mockDomains];
-      }
-    }
+    // Use mock domains directly - no window or localStorage
+    const allDomains = mockDomains.map(domain => ({
+      ...domain,
+      expirationDate: new Date(domain.expirationDate),
+      createdAt: new Date(domain.createdAt)
+    }));
     
     // Filter domains that are valid for display
-    allDomains = filterValidDomains(allDomains);
+    const validDomains = filterValidDomains(allDomains);
     
-    // Update the global domains variable
-    window.globalDomains = allDomains;
+    console.log("Index: Loaded domains count:", validDomains.length);
     
-    // Force sync with localStorage
-    localStorage.setItem('globalDomains', JSON.stringify(allDomains));
-    
-    console.log('Final domains being used:', allDomains);
-    
-    setFeaturedDomains(allDomains.slice(0, 8));
-    setFilteredFeaturedDomains(allDomains.slice(0, 8));
-    setMostLiked(getLeaderboard(LeaderboardType.MostLiked, allDomains).slice(0, 3));
-    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks, allDomains).slice(0, 3));
-    setSponsored(getLeaderboard(LeaderboardType.Sponsored, allDomains).slice(0, 3));
+    // Set the domains
+    setFeaturedDomains(validDomains.slice(0, 8));
+    setFilteredFeaturedDomains(validDomains.slice(0, 8));
+    setMostLiked(getLeaderboard(LeaderboardType.MostLiked, validDomains).slice(0, 3));
+    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks, validDomains).slice(0, 3));
+    setSponsored(getLeaderboard(LeaderboardType.Sponsored, validDomains).slice(0, 3));
     
     // Get available TLDs
-    setAvailableTLDs(getUniqueTLDs(allDomains));
+    setAvailableTLDs(getUniqueTLDs(validDomains));
+    
+    // Show a toast to notify user
+    if (validDomains.length > 0) {
+      toast.success(`Loaded ${validDomains.length} domains`);
+    } else {
+      toast.error("Failed to load any domains");
+    }
   }, []);
 
   useEffect(() => {
