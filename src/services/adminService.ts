@@ -1,3 +1,4 @@
+
 import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
 import { getCurrentUser, isAdmin } from "./authService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
@@ -52,6 +53,7 @@ export const verifyDomain = async (domainId: string): Promise<boolean> => {
     isVerified: true,
     verifiedAt: new Date(),
     verificationStatus: VerificationStatus.VERIFIED,
+    verificationDate: new Date(),
     // Update expiration date if found
     ...(expirationDate && { expirationDate })
   };

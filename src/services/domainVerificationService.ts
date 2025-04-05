@@ -3,7 +3,6 @@ import { Domain, VerificationMethod, VerificationStatus } from "@/types";
 import { isAdmin } from "./authService";
 import { sendEmail, sendVerificationSuccessEmail, sendVerificationFailureEmail } from "./emailService";
 import { updateDomain } from "./domainService";
-import { useToast } from "@/hooks/use-toast";
 
 // Generate a random verification code for DNS or email verification
 export const generateVerificationCode = (): string => {
@@ -43,6 +42,7 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
   
   // Simulate an API call with timeout
   return new Promise(async (resolve) => {
+    // Reduced timeout for demo purposes (from 2000ms to 1500ms)
     setTimeout(async () => {
       const isSuccessful = Math.random() > 0.3; // 70% success rate for demo
       
@@ -82,7 +82,7 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       }
       
       resolve(isSuccessful);
-    }, 2000); // Simulating a 2-second verification process
+    }, 1500); // Reduced timeout for testing
   });
 };
 
@@ -103,6 +103,30 @@ export const startEmailVerification = async (domain: Domain, ownerEmail: string)
   };
   
   updateDomain(updatedDomain);
+  
+  // Simulate email verification process (success/failure)
+  setTimeout(() => {
+    // 70% chance of success for demo
+    const isSuccessful = Math.random() > 0.3;
+    
+    if (isSuccessful) {
+      const verifiedDomain: Domain = {
+        ...updatedDomain,
+        verificationStatus: VerificationStatus.VERIFIED,
+        verificationDate: new Date(),
+        isVerified: true
+      };
+      updateDomain(verifiedDomain);
+    } else {
+      const failedDomain: Domain = {
+        ...updatedDomain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Email verification failed. Please try again or use a different method."
+      };
+      updateDomain(failedDomain);
+    }
+  }, 2000);
   
   // Send verification email
   return sendEmail("DOMAIN_VERIFICATION", {
@@ -217,13 +241,17 @@ export const getVerificationInstructions = (domain: Domain, method: Verification
   }
 };
 
-// New helper function to handle the timeout for verification
-export const simulateVerificationTimeout = (domainId: string, timeoutMs: number = 30000): void => {
+// Simulate verification timeout - improved version
+export const simulateVerificationTimeout = (domainId: string, timeoutMs: number = 15000): void => {
+  console.log(`[VERIFICATION] Setting timeout for domain ${domainId} for ${timeoutMs}ms`);
+  
   setTimeout(() => {
     const domains = window.globalDomains || [];
     const domain = domains.find(d => d.id === domainId);
     
     if (domain && domain.verificationStatus === VerificationStatus.PENDING) {
+      console.log(`[VERIFICATION] Timeout reached for domain ${domainId}, marking as failed`);
+      
       // If still pending after timeout, mark as failed
       const updatedDomain: Domain = {
         ...domain,

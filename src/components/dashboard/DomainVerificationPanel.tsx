@@ -38,7 +38,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
   
   // Poll for updates if verification is pending
   useEffect(() => {
-    let intervalId: number | undefined;
+    let intervalId: NodeJS.Timeout | undefined;
     
     if (domain.verificationStatus === VerificationStatus.PENDING) {
       // Set the start time if it's not already set
@@ -46,8 +46,8 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         setVerificationStartTime(new Date());
       }
       
-      // Poll every 3 seconds for updates
-      intervalId = window.setInterval(() => {
+      // Poll every 1 second for updates (reduced from 3s to be more responsive)
+      intervalId = setInterval(() => {
         // Get the latest domain data
         const domains = window.globalDomains || [];
         const updatedDomain = domains.find(d => d.id === domain.id);
@@ -76,11 +76,11 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             });
           }
         } else {
-          // Check if verification has been running too long (over 30 seconds)
+          // Check if verification has been running too long (over 15 seconds)
           const now = new Date();
           const elapsedTimeMs = verificationStartTime ? now.getTime() - verificationStartTime.getTime() : 0;
           
-          if (elapsedTimeMs > 30000) {
+          if (elapsedTimeMs > 15000) {
             // It's been too long, cancel the interval
             clearInterval(intervalId);
             setIsVerifying(false);
@@ -106,7 +106,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             });
           }
         }
-      }, 3000);
+      }, 1000);
     }
     
     // Cleanup interval on unmount
@@ -202,23 +202,34 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
       });
       
       if (selectedMethod === VerificationMethod.DNS_TXT) {
-        // Start the timeout timer for this verification
-        simulateVerificationTimeout(domain.id);
+        // Start the timeout timer for this verification (reduced from 30s to 15s for demo)
+        simulateVerificationTimeout(domain.id, 15000);
         await checkDnsTxtVerification(pendingDomain);
       } else if (selectedMethod === VerificationMethod.WHOIS_EMAIL) {
         // Start the timeout timer for this verification
-        simulateVerificationTimeout(domain.id);
+        simulateVerificationTimeout(domain.id, 15000);
         await startEmailVerification(pendingDomain, user.email);
       }
       
-      // Update UI with latest status
-      const updatedDomain = { ...pendingDomain };
-      if (onVerificationUpdate) {
-        onVerificationUpdate(updatedDomain);
-      }
+      // Update UI with latest status - no need to set isVerifying to false here 
+      // as the useEffect will handle that when status changes
     } catch (error) {
       console.error("Verification error:", error);
       setIsVerifying(false);
+      
+      // Update domain status to failed due to error
+      const errorDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Verification failed with an error. Please try again."
+      };
+      
+      updateDomain(errorDomain);
+      
+      if (onVerificationUpdate) {
+        onVerificationUpdate(errorDomain);
+      }
       
       // Show error toast
       toast({
@@ -293,6 +304,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
           </Alert>
         ) : domain.verificationStatus === VerificationStatus.FAILED ? (
           <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
             <AlertTitle>Verification Failed</AlertTitle>
             <AlertDescription>
               {domain.verificationNotes || 
@@ -334,7 +346,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
                 <Clock className="h-4 w-4" />
                 <AlertTitle>Verification in Progress</AlertTitle>
                 <AlertDescription>
-                  We're verifying your domain ownership. This process typically takes 15-30 seconds.
+                  We're verifying your domain ownership. This process typically takes 5-15 seconds.
                   {verificationStartTime && (
                     <div className="mt-2 text-sm">
                       Started: {verificationStartTime.toLocaleTimeString()}
