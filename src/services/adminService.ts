@@ -1,5 +1,5 @@
 
-import { Domain, DomainCategory, User } from "@/types";
+import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
 import { getCurrentUser, isAdmin } from "./authService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
 
@@ -19,11 +19,16 @@ export const getAdminStats = (): AdminStats | null => {
     return null;
   }
 
+  const allDomains = getAllDomains();
+  const pendingVerifications = allDomains.filter(
+    d => d.verificationStatus === VerificationStatus.PENDING
+  ).length;
+
   // Mocked stats for development
   return {
-    totalDomains: getAllDomains().length,
+    totalDomains: allDomains.length,
     totalUsers: 125,  // would come from a real user database
-    pendingVerifications: 3,
+    pendingVerifications,
     activeSellers: 42,
     recentPurchases: 17,
     revenue: 24950.00
@@ -42,7 +47,8 @@ export const verifyDomain = (domainId: string): boolean => {
   const updatedDomain: Domain = {
     ...domain,
     isVerified: true,
-    verifiedAt: new Date()
+    verifiedAt: new Date(),
+    verificationStatus: VerificationStatus.VERIFIED
   };
 
   return updateDomain(updatedDomain);
@@ -137,3 +143,33 @@ export const getUserManagementInfo = (): User[] => {
   ];
 };
 
+// Get pending domain verifications
+export const getPendingDomainVerifications = (): Domain[] => {
+  if (!isAdmin()) {
+    console.error("Unauthorized attempt to access pending verifications");
+    return [];
+  }
+  
+  const allDomains = getAllDomains();
+  return allDomains.filter(domain => domain.verificationStatus === VerificationStatus.PENDING);
+};
+
+// Reject domain verification
+export const rejectDomainVerification = (domainId: string, notes?: string): boolean => {
+  if (!isAdmin()) {
+    console.error("Unauthorized attempt to reject domain verification");
+    return false;
+  }
+  
+  const domain = getAllDomains().find(d => d.id === domainId);
+  if (!domain) return false;
+  
+  const updatedDomain: Domain = {
+    ...domain,
+    verificationStatus: VerificationStatus.FAILED,
+    verificationDate: new Date(),
+    verificationNotes: notes || "Rejected by admin"
+  };
+  
+  return updateDomain(updatedDomain);
+};

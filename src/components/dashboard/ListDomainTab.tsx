@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DomainCategory } from "@/types";
+import { DomainCategory, Domain, VerificationStatus } from "@/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import DomainVerificationPanel from "./DomainVerificationPanel";
 
 interface ListDomainTabProps {
   onSubmit: (domainData: {
@@ -28,9 +30,21 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const [description, setDescription] = useState("");
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(addDays(new Date(), 14));
   const [category, setCategory] = useState<DomainCategory>(DomainCategory.Business);
+  const [step, setStep] = useState<"details" | "verification">("details");
+  const [newDomain, setNewDomain] = useState<Domain | null>(null);
+  const [isValidationError, setIsValidationError] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!domainName || !description || !expirationDate || !category) {
+      setIsValidationError(true);
+      return;
+    }
+    
+    setIsValidationError(false);
+    
     onSubmit({
       domainName,
       description,
@@ -38,11 +52,50 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       category,
     });
     
-    // Reset form after submission
+    // Move to verification step
+    setStep("verification");
+    
+    // Create a temporary domain object for verification
+    // The real one will be created in the parent component
+    const tempDomain: Domain = {
+      id: `temp-${Math.random().toString(36).substring(7)}`,
+      name: domainName,
+      description,
+      expirationDate,
+      category,
+      sellerId: "current-user", // This will be set properly in parent
+      sellerName: "Current User", // This will be set properly in parent
+      price: 99,
+      likes: 0,
+      isSponsored: false,
+      isAdminPick: false,
+      createdAt: new Date(),
+      tld: domainName.split('.').pop() || "",
+      verificationStatus: VerificationStatus.NOT_STARTED
+    };
+    
+    setNewDomain(tempDomain);
+  };
+  
+  const resetForm = () => {
     setDomainName("");
     setDescription("");
     setExpirationDate(addDays(new Date(), 14));
     setCategory(DomainCategory.Business);
+    setStep("details");
+    setNewDomain(null);
+    setIsValidationError(false);
+  };
+  
+  const handleVerificationUpdate = (updatedDomain: Domain) => {
+    setNewDomain(updatedDomain);
+    
+    // If domain is verified, reset the form for a new submission
+    if (updatedDomain.verificationStatus === VerificationStatus.VERIFIED) {
+      setTimeout(() => {
+        resetForm();
+      }, 3000);
+    }
   };
 
   return (
@@ -54,95 +107,142 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="domain-name">Domain Name</Label>
-            <Input
-              id="domain-name"
-              placeholder="example.com"
-              value={domainName}
-              onChange={(e) => setDomainName(e.target.value)}
-              required
+        {step === "details" ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {isValidationError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  Please fill in all required fields.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="domain-name">Domain Name</Label>
+              <Input
+                id="domain-name"
+                placeholder="example.com"
+                value={domainName}
+                onChange={(e) => setDomainName(e.target.value)}
+                required
+              />
+              <p className="text-sm text-muted-foreground">
+                Include the full domain name with TLD (e.g., .com, .org, .io)
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(value) => setCategory(value as DomainCategory)}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(DomainCategory).map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Select the most appropriate category for your domain
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="expiration-date">Expiration Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !expirationDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {expirationDate ? format(expirationDate, "PPP") : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={expirationDate}
+                    onSelect={setExpirationDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-sm text-muted-foreground">
+                Domain must be expiring within 90 days
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe your domain (industry, potential uses, etc.)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                All domains are listed at our fixed price of $99
+              </p>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Continue to Verification"}
+              </Button>
+            </div>
+          </form>
+        ) : newDomain ? (
+          <div className="space-y-6">
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertTitle>Domain Details Saved</AlertTitle>
+              <AlertDescription>
+                Your domain details have been saved. Please complete verification to list your domain.
+              </AlertDescription>
+            </Alert>
+            
+            <DomainVerificationPanel 
+              domain={newDomain} 
+              onVerificationUpdate={handleVerificationUpdate}
             />
-            <p className="text-sm text-muted-foreground">
-              Include the full domain name with TLD (e.g., .com, .org, .io)
-            </p>
+            
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={resetForm}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => resetForm()} 
+                disabled={newDomain.verificationStatus !== VerificationStatus.VERIFIED}
+              >
+                {newDomain.verificationStatus === VerificationStatus.VERIFIED 
+                  ? "Add Another Domain" 
+                  : "Complete Verification"}
+              </Button>
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={(value) => setCategory(value as DomainCategory)}>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(DomainCategory).map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">
-              Select the most appropriate category for your domain
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="expiration-date">Expiration Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !expirationDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {expirationDate ? format(expirationDate, "PPP") : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={expirationDate}
-                  onSelect={setExpirationDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <p className="text-sm text-muted-foreground">
-              Domain must be expiring within 90 days
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Describe your domain (industry, potential uses, etc.)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-4">
-              All domains are listed at our fixed price of $99
-            </p>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Submitting..." : "List Domain for Sale"}
+        ) : (
+          <div className="text-center py-8">
+            <p>Loading verification panel...</p>
+            <Button className="mt-4" onClick={() => setStep("details")}>
+              Go Back
             </Button>
           </div>
-        </form>
+        )}
       </CardContent>
     </Card>
   );

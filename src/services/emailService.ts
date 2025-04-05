@@ -7,7 +7,10 @@ export type EmailTemplate =
   | "DOMAIN_LISTING"
   | "INTERESTED_BUYER"
   | "PASSWORD_RESET"
-  | "WELCOME";
+  | "WELCOME"
+  | "DOMAIN_VERIFICATION"
+  | "VERIFICATION_SUCCESS"
+  | "VERIFICATION_FAILURE";
 
 export interface EmailData {
   to: string;
@@ -76,3 +79,49 @@ export const sendInterestedBuyerNotification = async (
   });
 };
 
+export const sendDomainVerificationEmail = async (
+  email: string,
+  domainName: string,
+  verificationCode: string,
+  verificationUrl: string
+): Promise<boolean> => {
+  return sendEmail("DOMAIN_VERIFICATION", {
+    to: email,
+    subject: `Verify your ownership of ${domainName}`,
+    templateData: {
+      domainName,
+      verificationCode,
+      verificationUrl,
+    },
+  });
+};
+
+export const sendVerificationSuccessEmail = async (
+  email: string,
+  domainName: string
+): Promise<boolean> => {
+  return sendEmail("VERIFICATION_SUCCESS", {
+    to: email,
+    subject: `Domain verification successful: ${domainName}`,
+    templateData: {
+      domainName,
+      verificationDate: new Date().toISOString(),
+    },
+  });
+};
+
+export const sendVerificationFailureEmail = async (
+  email: string,
+  domainName: string,
+  reason: string
+): Promise<boolean> => {
+  return sendEmail("VERIFICATION_FAILURE", {
+    to: email,
+    subject: `Domain verification failed: ${domainName}`,
+    templateData: {
+      domainName,
+      reason,
+      supportEmail: "support@example.com",
+    },
+  });
+};

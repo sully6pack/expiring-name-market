@@ -33,6 +33,12 @@ export interface Domain {
   trafficStats?: TrafficStats;
   featuredUntil?: Date;
   lastUpdated?: Date;
+  // Domain verification fields
+  verificationStatus: VerificationStatus;
+  verificationMethod?: VerificationMethod;
+  verificationCode?: string;
+  verificationDate?: Date;
+  verificationNotes?: string;
 }
 
 export interface TrafficStats {
@@ -59,6 +65,20 @@ export enum LeaderboardType {
   MostLiked = "mostLiked",
   AdminPicks = "adminPicks",
   Sponsored = "sponsored"
+}
+
+export enum VerificationStatus {
+  PENDING = "pending",
+  VERIFIED = "verified",
+  FAILED = "failed",
+  NOT_STARTED = "not_started"
+}
+
+export enum VerificationMethod {
+  DNS_TXT = "dns_txt",
+  DNS_CNAME = "dns_cname",
+  WHOIS_EMAIL = "whois_email",
+  ADMIN_MANUAL = "admin_manual"
 }
 
 export interface AuthState {
@@ -104,4 +124,3 @@ export interface Notification {
   createdAt: Date;
   link?: string;
 }
-

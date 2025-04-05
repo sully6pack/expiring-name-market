@@ -1,5 +1,5 @@
 
-import { Domain, DomainCategory } from "@/types";
+import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { mockDomains } from "@/lib/mockData";
 import { getPurchasedDomains, isDomainPurchased } from "@/utils/purchaseUtils";
 import { extractTLD } from "@/utils/domainUtils";
@@ -17,7 +17,9 @@ const initializeDomains = (): Domain[] => {
         const formattedDomains = parsedDomains.map((domain: any) => ({
           ...domain,
           expirationDate: new Date(domain.expirationDate),
-          createdAt: new Date(domain.createdAt)
+          createdAt: new Date(domain.createdAt),
+          // Set default verification status if not present
+          verificationStatus: domain.verificationStatus || VerificationStatus.NOT_STARTED
         }));
         
         window.globalDomains = formattedDomains;
@@ -25,13 +27,21 @@ const initializeDomains = (): Domain[] => {
       }
     }
     
-    // If no valid domains in localStorage, use mock domains
-    window.globalDomains = [...mockDomains];
-    return [...mockDomains];
+    // If no valid domains in localStorage, use mock domains with verification status
+    const mocksWithVerification = mockDomains.map(domain => ({
+      ...domain,
+      verificationStatus: VerificationStatus.VERIFIED
+    }));
+    window.globalDomains = [...mocksWithVerification];
+    return [...mocksWithVerification];
   } catch (error) {
     console.error("Error initializing domains:", error);
-    window.globalDomains = [...mockDomains];
-    return [...mockDomains];
+    const mocksWithVerification = mockDomains.map(domain => ({
+      ...domain,
+      verificationStatus: VerificationStatus.VERIFIED
+    }));
+    window.globalDomains = [...mocksWithVerification];
+    return [...mocksWithVerification];
   }
 };
 
@@ -49,6 +59,12 @@ export const getAvailableDomains = (): Domain[] => {
   const purchasedDomainNames = getPurchasedDomains();
   
   return allDomains.filter(domain => !purchasedDomainNames.includes(domain.name.toLowerCase()));
+};
+
+// Get verified domains
+export const getVerifiedDomains = (): Domain[] => {
+  const allDomains = getAllDomains();
+  return allDomains.filter(domain => domain.verificationStatus === VerificationStatus.VERIFIED);
 };
 
 // Get domains by seller ID
@@ -95,6 +111,7 @@ export const addDomain = (domainData: {
     createdAt: new Date(),
     category: domainData.category,
     tld,
+    verificationStatus: VerificationStatus.NOT_STARTED
   };
   
   if (!window.globalDomains) {
