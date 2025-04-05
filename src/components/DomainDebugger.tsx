@@ -15,7 +15,7 @@ const DomainDebugger = () => {
     domainsDisplay: 0,
   });
 
-  // Update debug info every 500ms (more frequent updates)
+  // Update debug info every 500ms
   useEffect(() => {
     const updateDebugInfo = () => {
       try {
@@ -37,10 +37,12 @@ const DomainDebugger = () => {
         });
         
         console.log('Domain Debug Info:', {
-          localStorageDomains: parsedStoredDomains,
-          windowGlobalDomains: windowDomains,
-          mockDomains,
+          localStorageDomains: parsedStoredDomains.length,
+          windowGlobalDomains: windowDomains.length,
+          mockDomainsLength: mockDomains.length,
           domainsOnPage: domainCards.length,
+          firstWindowDomain: windowDomains.length > 0 ? windowDomains[0] : null,
+          firstMockDomain: mockDomains.length > 0 ? mockDomains[0] : null
         });
       } catch (error) {
         console.error('Error in DomainDebugger:', error);
@@ -50,7 +52,7 @@ const DomainDebugger = () => {
     // Update immediately
     updateDebugInfo();
     
-    // Then update every 500ms (more frequent than before)
+    // Then update every 500ms
     const interval = setInterval(updateDebugInfo, 500);
     
     return () => clearInterval(interval);
@@ -66,12 +68,20 @@ const DomainDebugger = () => {
         window.globalDomains = [];
       }
       
-      // Directly assign mockDomains to window.globalDomains
-      window.globalDomains = [...mockDomains];
+      // Completely reset window.globalDomains to mockDomains
+      window.globalDomains = [];
+      mockDomains.forEach(domain => {
+        window.globalDomains.push({
+          ...domain,
+          expirationDate: new Date(domain.expirationDate),
+          createdAt: new Date(domain.createdAt)
+        });
+      });
       
-      console.log('Manually synced domains from mockData', {
+      console.log('Manually synced domains - NEW APPROACH', {
         mockDomainsLength: mockDomains.length,
-        windowGlobalDomainsLength: window.globalDomains.length
+        windowGlobalDomainsLength: window.globalDomains.length,
+        firstWindowDomain: window.globalDomains.length > 0 ? window.globalDomains[0] : null
       });
       
       // Force page reload to ensure all components use the new data
@@ -84,12 +94,8 @@ const DomainDebugger = () => {
   const handleResetData = () => {
     try {
       localStorage.removeItem('globalDomains');
-      window.globalDomains = [...mockDomains];
-      localStorage.setItem('globalDomains', JSON.stringify(mockDomains));
-      console.log('Reset data complete', {
-        mockDomainsLength: mockDomains.length,
-        windowGlobalDomainsLength: window.globalDomains.length
-      });
+      window.globalDomains = [];
+      console.log('Reset data complete - all data cleared');
       window.location.reload();
     } catch (error) {
       console.error('Error in reset data:', error);
