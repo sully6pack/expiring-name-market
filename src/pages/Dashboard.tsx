@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockDomains, currentUser } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
-import { Domain, DomainCategory } from "@/types";
+import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
 import { filterOutPurchasedDomains, logPurchasedDomains } from "@/utils/purchaseUtils";
@@ -124,6 +124,7 @@ const Dashboard = () => {
         createdAt: new Date(),
         category: domainData.category,
         tld,
+        verificationStatus: VerificationStatus.NOT_STARTED,
       };
       
       window.globalDomains = [...window.globalDomains, newDomain];

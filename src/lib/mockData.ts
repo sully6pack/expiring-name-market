@@ -1,5 +1,5 @@
 
-import { User, Domain, DomainCategory, LeaderboardType } from "@/types";
+import { User, Domain, DomainCategory, LeaderboardType, VerificationStatus } from "@/types";
 
 export const mockDomains: Domain[] = [
   {
@@ -16,6 +16,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Technology,
     tld: "com",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain2",
@@ -31,6 +32,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Technology,
     tld: "io",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain3",
@@ -46,6 +48,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Health,
     tld: "org",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain4",
@@ -61,6 +64,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Travel,
     tld: "net",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain5",
@@ -76,6 +80,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Business,
     tld: "biz",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain6",
@@ -91,6 +96,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Education,
     tld: "info",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain7",
@@ -106,6 +112,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Finance,
     tld: "co",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain8",
@@ -121,6 +128,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Entertainment,
     tld: "tv",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain9",
@@ -136,6 +144,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Fashion,
     tld: "store",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
   {
     id: "domain10",
@@ -151,6 +160,7 @@ export const mockDomains: Domain[] = [
     createdAt: new Date(),
     category: DomainCategory.Food,
     tld: "blog",
+    verificationStatus: VerificationStatus.VERIFIED,
   },
 ];
 
