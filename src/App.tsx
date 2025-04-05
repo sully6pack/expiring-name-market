@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Domains from "./pages/Domains";
 import NotFound from "./pages/NotFound";
+import DomainDebugger from "./components/DomainDebugger";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <DomainDebugger />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
