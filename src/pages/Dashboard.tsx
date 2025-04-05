@@ -142,35 +142,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleToggleFeature = (domainToToggle: Domain) => {
-    if (!window.globalDomains) {
-      window.globalDomains = [...mockDomains];
-    }
-    
-    // Update the featured status in global domains
-    window.globalDomains = window.globalDomains.map(domain => 
-      domain.id === domainToToggle.id 
-        ? { ...domain, isFeatured: !domain.isFeatured } 
-        : domain
-    );
-    
-    // Update local state
-    setMyDomains(prevDomains => 
-      prevDomains.map(domain => 
-        domain.id === domainToToggle.id 
-          ? { ...domain, isFeatured: !domain.isFeatured } 
-          : domain
-      )
-    );
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
-    } catch (error) {
-      console.error('Error saving domains to localStorage:', error);
-    }
-  };
-
   if (!currentUser) {
     navigate("/");
     return null;
@@ -195,7 +166,6 @@ const Dashboard = () => {
             <MyDomainsTab 
               domains={myDomains} 
               onDeleteDomain={handleDeleteDomain} 
-              onToggleFeature={handleToggleFeature}
             />
           </TabsContent>
           

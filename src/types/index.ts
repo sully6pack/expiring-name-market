@@ -19,7 +19,6 @@ export interface Domain {
   price: number;
   isSponsored: boolean;
   isAdminPick: boolean;
-  isFeatured: boolean; // New property for featured domains
   createdAt: Date;
   category: DomainCategory;
   tld: string;
