@@ -39,7 +39,11 @@ const Dashboard = () => {
     const userDomains = window.globalDomains.filter(domain => domain.sellerId === currentUser.id);
     console.log(`Dashboard: Found ${userDomains.length} domains owned by current user`);
     
-    setMyDomains(userDomains);
+    // Make sure to only show domains that haven't been purchased
+    const availableDomains = filterOutPurchasedDomains(userDomains);
+    console.log(`Dashboard: ${availableDomains.length} domains available after filtering out purchased domains`);
+    
+    setMyDomains(availableDomains);
     setInterestedBuyers([
       { 
         domainId: mockDomains[0].id, 
