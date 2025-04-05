@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/pagination";
 import Navbar from "@/components/Navbar";
 import DomainCard from "@/components/DomainCard";
-import { mockDomains, initializeGlobalDomains } from "@/lib/mockData";
+import { mockDomains } from "@/lib/mockData";
 import { Domain, DomainCategory } from "@/types";
 import { 
   Select, 
@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
+import { toast } from "sonner";
 
 const Domains = () => {
   const location = useLocation();
@@ -38,59 +39,24 @@ const Domains = () => {
   const [tldFilter, setTldFilter] = useState<string>(queryParams.get("tld") || "all");
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
   
-  const domainsPerPage = 40; // Increased from 8 to 40
+  const domainsPerPage = 20;
 
   useEffect(() => {
-    // Ensure global domains are initialized
-    initializeGlobalDomains();
+    // Load domains directly from mockDomains
+    console.log("Domains page: Loading domains from mockDomains");
     
-    // Try to load domains from window.globalDomains first
-    let allDomains: Domain[] = [];
+    const validDomains = filterValidDomains([...mockDomains]);
+    console.log("Domains page: Valid domains count:", validDomains.length);
     
-    if (window.globalDomains && window.globalDomains.length > 0) {
-      console.log('Using window.globalDomains in Domains page:', window.globalDomains);
-      allDomains = window.globalDomains;
+    setDomains(validDomains);
+    setFilteredDomains(validDomains);
+    setAvailableTLDs(getUniqueTLDs(validDomains));
+    
+    if (validDomains.length > 0) {
+      toast.success(`Loaded ${validDomains.length} domains`);
     } else {
-      // Try localStorage as fallback
-      try {
-        const storedDomains = localStorage.getItem('globalDomains');
-        if (storedDomains) {
-          console.log('Using localStorage domains in Domains page');
-          // Parse the stored domains and fix date objects
-          const parsedDomains = JSON.parse(storedDomains);
-          allDomains = parsedDomains.map((domain: any) => ({
-            ...domain,
-            expirationDate: new Date(domain.expirationDate),
-            createdAt: new Date(domain.createdAt)
-          }));
-        } else {
-          // Final fallback to mock data
-          console.log('Using mockDomains as fallback in Domains page');
-          allDomains = [...mockDomains];
-        }
-      } catch (error) {
-        console.error('Error loading domains in Domains page:', error);
-        // Final fallback to mock data
-        allDomains = [...mockDomains];
-      }
+      toast.error("Failed to load any domains");
     }
-    
-    // Filter domains that are valid for display
-    allDomains = filterValidDomains(allDomains);
-    
-    // Update the global domains variable
-    window.globalDomains = allDomains;
-    
-    // Force sync with localStorage
-    localStorage.setItem('globalDomains', JSON.stringify(allDomains));
-    
-    console.log('Final domains being used in Domains page:', allDomains);
-    
-    setDomains(allDomains);
-    setFilteredDomains(allDomains);
-    
-    // Get available TLDs
-    setAvailableTLDs(getUniqueTLDs(allDomains));
   }, []);
 
   // Parse URL parameters when the location changes
@@ -128,9 +94,9 @@ const Domains = () => {
     result.sort((a, b) => {
       switch (sortOrder) {
         case "expiration-asc":
-          return new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime();
+          return a.expirationDate.getTime() - b.expirationDate.getTime();
         case "expiration-desc":
-          return new Date(b.expirationDate).getTime() - new Date(a.expirationDate).getTime();
+          return b.expirationDate.getTime() - a.expirationDate.getTime();
         case "popularity":
           return b.likes - a.likes;
         case "alphabetical":
@@ -245,7 +211,7 @@ const Domains = () => {
         )}
         
         {/* Pagination */}
-        {filteredDomains.length > 0 && (
+        {filteredDomains.length > domainsPerPage && (
           <div className="mt-8">
             <Pagination>
               <PaginationContent>
@@ -256,16 +222,31 @@ const Domains = () => {
                   />
                 </PaginationItem>
                 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <PaginationItem key={page}>
-                    <PaginationLink 
-                      isActive={page === currentPage}
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Show pages around current page
+                  let pageNum = i + 1;
+                  if (totalPages > 5) {
+                    if (currentPage > 3) {
+                      pageNum = currentPage - 3 + i;
+                    }
+                    if (currentPage > totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    }
+                  }
+                  
+                  return (
+                    pageNum > 0 && pageNum <= totalPages && (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink 
+                          isActive={pageNum === currentPage}
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  );
+                })}
                 
                 <PaginationItem>
                   <PaginationNext 

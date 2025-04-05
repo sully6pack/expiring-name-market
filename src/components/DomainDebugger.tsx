@@ -32,7 +32,7 @@ const DomainDebugger = () => {
           mockDomainsLength: mockDomains.length,
           domainsOnPage: domainCards.length,
           windowDomainsCount: windowDomainsCount,
-          firstMockDomain: mockDomains.length > 0 ? mockDomains[0] : null
+          windowGlobalDomains: window.globalDomains
         });
       } catch (error) {
         console.error('Error in DomainDebugger:', error);
@@ -55,12 +55,9 @@ const DomainDebugger = () => {
 
   const handleForceSync = () => {
     if (typeof window !== 'undefined') {
-      window.globalDomains = mockDomains.map(domain => ({
-        ...domain,
-        expirationDate: new Date(domain.expirationDate),
-        createdAt: new Date(domain.createdAt)
-      }));
-      toast.success("Domains synced and ready");
+      window.globalDomains = mockDomains;
+      toast.success("Domains synced from mock data");
+      console.log('Force synced window.globalDomains with mockDomains', window.globalDomains);
       setTimeout(() => window.location.reload(), 500);
     }
   };

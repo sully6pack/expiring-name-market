@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Domain } from "@/types";
 import { formatDate, getDaysUntilExpiration } from "@/utils/validation";
 import { Heart, Tag } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface DomainCardProps {
   domain: Domain;
@@ -16,16 +16,12 @@ interface DomainCardProps {
 const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
   const [likes, setLikes] = useState(domain.likes);
   const [isLiked, setIsLiked] = useState(false);
-  const { toast } = useToast();
 
   const handleLike = () => {
     if (!isLiked) {
       setLikes(likes + 1);
       setIsLiked(true);
-      toast({
-        title: "Domain liked",
-        description: `You liked ${domain.name}`,
-      });
+      toast.success(`You liked ${domain.name}`);
     } else {
       setLikes(likes - 1);
       setIsLiked(false);
@@ -33,10 +29,7 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
   };
 
   const handleBuy = () => {
-    toast({
-      title: "Interest registered",
-      description: "The seller has been notified of your interest in this domain",
-    });
+    toast.success("Interest registered! The seller has been notified.");
   };
 
   return (

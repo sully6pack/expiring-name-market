@@ -1,62 +1,36 @@
 
-/**
- * Validates if a domain should be displayed based on its expiration date
- * Rules:
- * 1. Must be within 90 days of expiring (to display)
- * 2. Must not have passed expiration date + 15 days
- */
-export function isDomainValid(expirationDate: Date): boolean {
-  const now = new Date();
-  const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
-  const fifteenDaysInMs = 15 * 24 * 60 * 60 * 1000;
-  
-  // Check if expiration is within 90 days (future)
-  const isWithinNinetyDays = expirationDate.getTime() - now.getTime() <= ninetyDaysInMs;
-  
-  // Check if expiration + 15 days is not in the past
-  const fifteenDaysAfterExpiration = new Date(expirationDate.getTime() + fifteenDaysInMs);
-  const isNotTooLate = fifteenDaysAfterExpiration.getTime() >= now.getTime();
-  
-  return isWithinNinetyDays && isNotTooLate;
-}
+import { Domain } from "@/types";
 
-/**
- * Formats a date to a friendly string
- */
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric' 
-  }).format(date);
-}
+export const filterValidDomains = (domains: Domain[]): Domain[] => {
+  return domains.filter(domain => 
+    domain.name && 
+    domain.expirationDate instanceof Date && 
+    !isNaN(domain.expirationDate.getTime())
+  );
+};
 
-/**
- * Returns days until expiration as a string
- */
-export function getDaysUntilExpiration(expirationDate: Date): string {
-  const now = new Date();
-  const diffTime = expirationDate.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) {
-    return `Expired ${Math.abs(diffDays)} days ago`;
-  }
-  
-  return diffDays === 0 ? 'Expires today' : `Expires in ${diffDays} days`;
-}
-
-/**
- * Filters out domains that are not valid for display
- * (expired more than 15 days ago or expiring more than 90 days in the future)
- */
-export function filterValidDomains(domains: any[]): any[] {
-  return domains.filter(domain => {
-    // Ensure the expiration date is a Date object
-    const expirationDate = domain.expirationDate instanceof Date 
-      ? domain.expirationDate 
-      : new Date(domain.expirationDate);
-    
-    return isDomainValid(expirationDate);
+export const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   });
-}
+};
+
+export const getDaysUntilExpiration = (expirationDate: Date): string => {
+  const today = new Date();
+  const timeDiff = expirationDate.getTime() - today.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  
+  if (daysDiff < 0) {
+    return "Expired";
+  } else if (daysDiff === 0) {
+    return "Expires today";
+  } else if (daysDiff === 1) {
+    return "Expires tomorrow";
+  } else if (daysDiff <= 30) {
+    return `Expires in ${daysDiff} days`;
+  } else {
+    return `Expires in ${Math.floor(daysDiff / 30)} months`;
+  }
+};

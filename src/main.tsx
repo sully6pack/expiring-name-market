@@ -4,25 +4,15 @@ import App from './App.tsx'
 import './index.css'
 import { mockDomains } from './lib/mockData';
 
-console.log('Main.tsx: Starting app initialization');
-
-// Clear any previous state that might be causing issues
-if (typeof localStorage !== 'undefined') {
-  console.log('Main.tsx: Clearing localStorage');
-  localStorage.removeItem('globalDomains');
-}
-
-// Ensure window.globalDomains is properly initialized with fresh data
+// Set global domains directly from mock data
 if (typeof window !== 'undefined') {
-  console.log('Main.tsx: Setting up window.globalDomains');
-  window.globalDomains = mockDomains.map(domain => ({
-    ...domain,
-    expirationDate: new Date(domain.expirationDate),
-    createdAt: new Date(domain.createdAt)
-  }));
-  console.log('Main.tsx: window.globalDomains count:', window.globalDomains.length);
+  window.globalDomains = mockDomains;
+  console.log('Main.tsx: Initialized window.globalDomains with', window.globalDomains.length, 'domains');
 }
 
-// Create root
-const root = createRoot(document.getElementById("root")!);
+// Create root and render app
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Failed to find the root element");
+
+const root = createRoot(rootElement);
 root.render(<App />);

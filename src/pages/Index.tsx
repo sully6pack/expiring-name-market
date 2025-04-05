@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import DomainCard from "@/components/DomainCard";
 import Leaderboard from "@/components/Leaderboard";
 import Navbar from "@/components/Navbar";
-import { getLeaderboard, mockDomains } from "@/lib/mockData";
+import { mockDomains, getLeaderboard } from "@/lib/mockData";
 import { LeaderboardType, Domain, DomainCategory } from "@/types";
 import { Input } from "@/components/ui/input";
 import { 
@@ -31,25 +32,23 @@ const Index = () => {
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
 
   useEffect(() => {
-    console.log("Index: Loading domains directly from mockDomains, count:", mockDomains.length);
+    console.log("Index: Loading domains from mockDomains");
     
-    const domainsWithDates = mockDomains.map(domain => ({
-      ...domain,
-      expirationDate: domain.expirationDate instanceof Date ? domain.expirationDate : new Date(domain.expirationDate),
-      createdAt: domain.createdAt instanceof Date ? domain.createdAt : new Date(domain.createdAt)
-    }));
-    
-    const validDomains = filterValidDomains(domainsWithDates);
+    // Get domains directly from mockDomains (no reliance on window.globalDomains)
+    const validDomains = filterValidDomains([...mockDomains]);
     
     console.log("Index: Valid domains count:", validDomains.length);
     
+    // Set featured domains (first 8)
     setFeaturedDomains(validDomains.slice(0, 8));
     setFilteredFeaturedDomains(validDomains.slice(0, 8));
     
-    setMostLiked(getLeaderboard(LeaderboardType.MostLiked, validDomains).slice(0, 3));
-    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks, validDomains).slice(0, 3));
-    setSponsored(getLeaderboard(LeaderboardType.Sponsored, validDomains).slice(0, 3));
+    // Get leaderboards
+    setMostLiked(getLeaderboard(LeaderboardType.MostLiked).slice(0, 3));
+    setAdminPicks(getLeaderboard(LeaderboardType.AdminPicks).slice(0, 3));
+    setSponsored(getLeaderboard(LeaderboardType.Sponsored).slice(0, 3));
     
+    // Get TLDs
     setAvailableTLDs(getUniqueTLDs(validDomains));
     
     if (validDomains.length > 0) {

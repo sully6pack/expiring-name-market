@@ -163,53 +163,31 @@ export const currentUser: User = {
   createdAt: new Date(),
 };
 
-// Simplified initialization function - directly uses mockDomains
-export const initializeGlobalDomains = () => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    console.log('initializeGlobalDomains: Starting domain initialization');
-    
-    // Set window.globalDomains directly from mockDomains with proper Date objects
-    window.globalDomains = mockDomains.map(domain => ({
-      ...domain,
-      expirationDate: new Date(domain.expirationDate),
-      createdAt: new Date(domain.createdAt)
-    }));
-    
-    console.log('Domain initialization complete:', {
-      windowGlobalDomainsLength: window.globalDomains.length,
-      mockDomainsLength: mockDomains.length,
-      sample: window.globalDomains.length > 0 ? window.globalDomains[0] : null
-    });
-  } catch (error) {
-    console.error('Error in initializeGlobalDomains:', error);
-    
-    // Final fallback
-    window.globalDomains = mockDomains.map(domain => ({
-      ...domain,
-      expirationDate: new Date(domain.expirationDate),
-      createdAt: new Date(domain.createdAt)
-    }));
+// Get domains for a specific leaderboard type
+export const getLeaderboard = (type: LeaderboardType): Domain[] => {
+  switch (type) {
+    case LeaderboardType.MostLiked:
+      return [...mockDomains].sort((a, b) => b.likes - a.likes);
+    case LeaderboardType.AdminPicks:
+      return mockDomains.filter(domain => domain.isAdminPick);
+    case LeaderboardType.Sponsored:
+      return mockDomains.filter(domain => domain.isSponsored);
+    default:
+      return mockDomains;
   }
 };
 
-export const getLeaderboard = (type: LeaderboardType, customDomains?: Domain[]): Domain[] => {
-  // Always use mockDomains directly instead of relying on customDomains
-  const domains = mockDomains.map(domain => ({
-    ...domain,
-    expirationDate: new Date(domain.expirationDate),
-    createdAt: new Date(domain.createdAt)
-  }));
-  
-  switch (type) {
-    case LeaderboardType.MostLiked:
-      return [...domains].sort((a, b) => b.likes - a.likes);
-    case LeaderboardType.AdminPicks:
-      return domains.filter(domain => domain.isAdminPick);
-    case LeaderboardType.Sponsored:
-      return domains.filter(domain => domain.isSponsored);
-    default:
-      return domains;
-  }
+// Helper to get TLDs from domains
+export const getUniqueTLDs = (domains: Domain[]): string[] => {
+  const tlds = domains.map(domain => domain.tld);
+  return [...new Set(tlds)];
+};
+
+// Helper to validate domains
+export const filterValidDomains = (domains: Domain[]): Domain[] => {
+  return domains.filter(domain => 
+    domain.name && 
+    domain.expirationDate instanceof Date && 
+    !isNaN(domain.expirationDate.getTime())
+  );
 };
