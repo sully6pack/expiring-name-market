@@ -6,6 +6,11 @@ export interface User {
   isAdmin: boolean;
   isVerified: boolean;
   createdAt: Date;
+  // New fields
+  profilePicture?: string;
+  phone?: string;
+  company?: string;
+  verifiedAt?: Date;
 }
 
 export interface Domain {
@@ -22,6 +27,19 @@ export interface Domain {
   createdAt: Date;
   category: DomainCategory;
   tld: string;
+  // New fields
+  isVerified?: boolean;
+  verifiedAt?: Date;
+  trafficStats?: TrafficStats;
+  featuredUntil?: Date;
+  lastUpdated?: Date;
+}
+
+export interface TrafficStats {
+  monthlyVisitors?: number;
+  searchVolume?: number;
+  backlinks?: number;
+  domainAuthority?: number;
 }
 
 export enum DomainCategory {
@@ -48,3 +66,42 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
+export enum ListingStatus {
+  ACTIVE = "active",
+  PENDING = "pending", 
+  EXPIRED = "expired",
+  SOLD = "sold"
+}
+
+export enum TransactionType {
+  DOMAIN_PURCHASE = "domain_purchase",
+  LISTING_FEE = "listing_fee",
+  RENEWAL_FEE = "renewal_fee",
+  FEATURED_LISTING = "featured_listing"
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  domainId?: string;
+  domainName?: string;
+  amount: number;
+  type: TransactionType;
+  status: "pending" | "completed" | "failed" | "refunded";
+  paymentMethod: "credit_card" | "paypal" | "crypto";
+  createdAt: Date;
+  completedAt?: Date;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+  isRead: boolean;
+  createdAt: Date;
+  link?: string;
+}
+
