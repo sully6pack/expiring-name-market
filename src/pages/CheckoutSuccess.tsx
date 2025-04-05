@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import { CheckCircle, Home, Search } from "lucide-react";
-import { markDomainAsPurchased } from "@/utils/purchaseUtils";
+import { markDomainAsPurchased, logPurchasedDomains } from "@/utils/purchaseUtils";
 import { toast } from "sonner";
 
 const CheckoutSuccess = () => {
@@ -20,9 +20,17 @@ const CheckoutSuccess = () => {
       return;
     }
     
+    // Log current purchased domains before adding the new one
+    console.log("Before purchase - checking purchased domains:");
+    logPurchasedDomains();
+    
     // Mark the domain as purchased
     markDomainAsPurchased(domainName);
     toast.success(`${domainName} has been successfully purchased!`);
+    
+    // Log purchased domains after adding
+    console.log("After purchase - checking purchased domains:");
+    logPurchasedDomains();
   }, [domainName, navigate]);
   
   return (

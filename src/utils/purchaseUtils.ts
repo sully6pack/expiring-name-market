@@ -28,9 +28,23 @@ export const markDomainAsPurchased = (domainName: string): void => {
  * Get all purchased domain names
  */
 export const getPurchasedDomains = (): string[] => {
-  const stored = localStorage.getItem(PURCHASED_DOMAINS_KEY);
-  const domains = stored ? JSON.parse(stored) : [];
-  return domains.map((domain: string) => domain.toLowerCase().trim());
+  try {
+    const stored = localStorage.getItem(PURCHASED_DOMAINS_KEY);
+    if (!stored) return [];
+    
+    const domains = JSON.parse(stored);
+    if (!Array.isArray(domains)) {
+      console.error("Invalid purchased domains format in localStorage, resetting");
+      localStorage.removeItem(PURCHASED_DOMAINS_KEY);
+      return [];
+    }
+    
+    // Normalize all domains
+    return domains.map((domain: string) => domain.toLowerCase().trim());
+  } catch (error) {
+    console.error("Error parsing purchased domains:", error);
+    return [];
+  }
 };
 
 /**
@@ -41,7 +55,12 @@ export const isDomainPurchased = (domainName: string): boolean => {
   
   const normalizedDomain = domainName.toLowerCase().trim();
   const purchasedDomains = getPurchasedDomains();
+  
+  console.log(`Checking if domain is purchased: ${normalizedDomain}`);
+  console.log(`Currently purchased domains:`, purchasedDomains);
+  
   const isPurchased = purchasedDomains.includes(normalizedDomain);
+  console.log(`Domain ${normalizedDomain} purchased status: ${isPurchased}`);
   
   return isPurchased;
 };
@@ -57,6 +76,7 @@ export const filterOutPurchasedDomains = (domains: any[]): any[] => {
   
   const purchasedDomains = getPurchasedDomains();
   console.log(`Filtering domains. Total domains: ${domains.length}, Purchased domains: ${purchasedDomains.length}`);
+  logPurchasedDomains();
   
   return domains.filter(domain => {
     if (!domain || !domain.name) {
@@ -89,4 +109,16 @@ export const clearPurchasedDomains = (): void => {
 export const logPurchasedDomains = (): void => {
   const domains = getPurchasedDomains();
   console.log("Currently purchased domains:", domains);
+};
+
+/**
+ * Add this function to check for domain purchase in the checkout success page
+ */
+export const checkAndReloadIfPurchased = (domainName: string): boolean => {
+  if (isDomainPurchased(domainName)) {
+    console.log(`Domain ${domainName} was already purchased. Reloading page to update UI.`);
+    setTimeout(() => window.location.reload(), 1000);
+    return true;
+  }
+  return false;
 };
