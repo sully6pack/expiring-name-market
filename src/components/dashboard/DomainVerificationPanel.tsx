@@ -1,16 +1,22 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Domain, VerificationMethod, VerificationStatus } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, AlertCircle, Clock, HelpCircle, Calendar } from "lucide-react";
-import { getVerificationInstructions, checkDnsTxtVerification, startEmailVerification } from "@/services/domainVerificationService";
+import { 
+  getVerificationInstructions, 
+  checkDnsTxtVerification, 
+  startEmailVerification, 
+  simulateVerificationTimeout 
+} from "@/services/domainVerificationService";
 import { getCurrentUser } from "@/services/authService";
 import { updateDomain } from "@/services/domainService";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface DomainVerificationPanelProps {
   domain: Domain;
@@ -25,8 +31,91 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
   const [instructions, setInstructions] = useState(
     getVerificationInstructions(domain, selectedMethod)
   );
+  const [verificationStartTime, setVerificationStartTime] = useState<Date | null>(null);
+  const { toast } = useToast();
   
   const user = getCurrentUser();
+  
+  // Poll for updates if verification is pending
+  useEffect(() => {
+    let intervalId: number | undefined;
+    
+    if (domain.verificationStatus === VerificationStatus.PENDING) {
+      // Set the start time if it's not already set
+      if (!verificationStartTime) {
+        setVerificationStartTime(new Date());
+      }
+      
+      // Poll every 3 seconds for updates
+      intervalId = window.setInterval(() => {
+        // Get the latest domain data
+        const domains = window.globalDomains || [];
+        const updatedDomain = domains.find(d => d.id === domain.id);
+        
+        if (updatedDomain && updatedDomain.verificationStatus !== VerificationStatus.PENDING) {
+          // Verification has completed (either success or failure)
+          clearInterval(intervalId);
+          setIsVerifying(false);
+          
+          if (onVerificationUpdate) {
+            onVerificationUpdate(updatedDomain);
+          }
+          
+          // Show toast based on verification result
+          if (updatedDomain.verificationStatus === VerificationStatus.VERIFIED) {
+            toast({
+              title: "Verification Successful",
+              description: "Your domain has been successfully verified.",
+              variant: "default",
+            });
+          } else if (updatedDomain.verificationStatus === VerificationStatus.FAILED) {
+            toast({
+              title: "Verification Failed",
+              description: updatedDomain.verificationNotes || "Domain verification failed. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          // Check if verification has been running too long (over 30 seconds)
+          const now = new Date();
+          const elapsedTimeMs = verificationStartTime ? now.getTime() - verificationStartTime.getTime() : 0;
+          
+          if (elapsedTimeMs > 30000) {
+            // It's been too long, cancel the interval
+            clearInterval(intervalId);
+            setIsVerifying(false);
+            
+            // Update domain status to failed due to timeout
+            const timeoutDomain: Domain = {
+              ...domain,
+              verificationStatus: VerificationStatus.FAILED,
+              verificationDate: new Date(),
+              verificationNotes: "Verification timed out. Please try again."
+            };
+            
+            updateDomain(timeoutDomain);
+            
+            if (onVerificationUpdate) {
+              onVerificationUpdate(timeoutDomain);
+            }
+            
+            toast({
+              title: "Verification Timeout",
+              description: "Verification is taking too long. Please try again later.",
+              variant: "destructive",
+            });
+          }
+        }
+      }, 3000);
+    }
+    
+    // Cleanup interval on unmount
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [domain.id, domain.verificationStatus, onVerificationUpdate, verificationStartTime, toast]);
   
   const getStatusIcon = () => {
     switch (domain.verificationStatus) {
@@ -91,6 +180,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     if (!user || !domain) return;
     
     setIsVerifying(true);
+    setVerificationStartTime(new Date());
     
     try {
       // Set domain to pending status
@@ -105,9 +195,19 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         onVerificationUpdate(pendingDomain);
       }
       
+      // Show toast that verification has started
+      toast({
+        title: "Verification Started",
+        description: "We're now verifying your domain ownership. This may take a few moments.",
+      });
+      
       if (selectedMethod === VerificationMethod.DNS_TXT) {
+        // Start the timeout timer for this verification
+        simulateVerificationTimeout(domain.id);
         await checkDnsTxtVerification(pendingDomain);
       } else if (selectedMethod === VerificationMethod.WHOIS_EMAIL) {
+        // Start the timeout timer for this verification
+        simulateVerificationTimeout(domain.id);
         await startEmailVerification(pendingDomain, user.email);
       }
       
@@ -118,8 +218,14 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
       }
     } catch (error) {
       console.error("Verification error:", error);
-    } finally {
       setIsVerifying(false);
+      
+      // Show error toast
+      toast({
+        title: "Verification Error",
+        description: "An error occurred during verification. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -127,6 +233,25 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     domain.verificationStatus === VerificationStatus.VERIFIED ||
     domain.verificationStatus === VerificationStatus.PENDING ||
     isVerifying;
+  
+  const handleRetryVerification = () => {
+    // Reset verification status and let user try again
+    const resetDomain: Domain = {
+      ...domain,
+      verificationStatus: VerificationStatus.NOT_STARTED,
+      verificationDate: undefined,
+      verificationNotes: undefined
+    };
+    
+    updateDomain(resetDomain);
+    
+    if (onVerificationUpdate) {
+      onVerificationUpdate(resetDomain);
+    }
+    
+    setIsVerifying(false);
+    setVerificationStartTime(null);
+  };
   
   return (
     <Card className="shadow-sm">
@@ -206,9 +331,15 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             
             {domain.verificationStatus === VerificationStatus.PENDING && (
               <Alert>
+                <Clock className="h-4 w-4" />
                 <AlertTitle>Verification in Progress</AlertTitle>
                 <AlertDescription>
-                  We're verifying your domain ownership. This may take some time.
+                  We're verifying your domain ownership. This process typically takes 15-30 seconds.
+                  {verificationStartTime && (
+                    <div className="mt-2 text-sm">
+                      Started: {verificationStartTime.toLocaleTimeString()}
+                    </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -216,7 +347,16 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         )}
       </CardContent>
       <CardFooter>
-        {domain.verificationStatus !== VerificationStatus.VERIFIED && (
+        {domain.verificationStatus === VerificationStatus.VERIFIED ? (
+          <p className="text-sm text-green-600 w-full text-center">Your domain is verified and ready to be listed!</p>
+        ) : domain.verificationStatus === VerificationStatus.FAILED ? (
+          <Button 
+            onClick={handleRetryVerification}
+            className="w-full"
+          >
+            Try Again
+          </Button>
+        ) : (
           <Button 
             onClick={startVerification}
             disabled={isStartButtonDisabled}

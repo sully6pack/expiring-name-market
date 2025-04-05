@@ -1,8 +1,9 @@
 
 import { Domain, VerificationMethod, VerificationStatus } from "@/types";
 import { isAdmin } from "./authService";
-import { sendEmail } from "./emailService";
+import { sendEmail, sendVerificationSuccessEmail, sendVerificationFailureEmail } from "./emailService";
 import { updateDomain } from "./domainService";
+import { useToast } from "@/hooks/use-toast";
 
 // Generate a random verification code for DNS or email verification
 export const generateVerificationCode = (): string => {
@@ -59,18 +60,29 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
           // Update expiration date if we found one
           ...(expirationDate && { expirationDate })
         };
-        updateDomain(updatedDomain);
+        
+        const updated = updateDomain(updatedDomain);
+        if (updated) {
+          // Send success email in a real application
+          sendVerificationSuccessEmail(domain.sellerId, domain.name);
+        }
       } else {
         const updatedDomain: Domain = {
           ...domain,
           verificationStatus: VerificationStatus.FAILED,
-          verificationDate: new Date()
+          verificationDate: new Date(),
+          verificationNotes: "DNS TXT record verification failed. Please ensure you've added the TXT record correctly."
         };
-        updateDomain(updatedDomain);
+        
+        const updated = updateDomain(updatedDomain);
+        if (updated) {
+          // Send failure email in a real application
+          sendVerificationFailureEmail(domain.sellerId, domain.name, "DNS TXT record verification failed");
+        }
       }
       
       resolve(isSuccessful);
-    }, 2000);
+    }, 2000); // Simulating a 2-second verification process
   });
 };
 
@@ -203,4 +215,24 @@ export const getVerificationInstructions = (domain: Domain, method: Verification
     default:
       return `Please contact support for assistance with domain verification.`;
   }
+};
+
+// New helper function to handle the timeout for verification
+export const simulateVerificationTimeout = (domainId: string, timeoutMs: number = 30000): void => {
+  setTimeout(() => {
+    const domains = window.globalDomains || [];
+    const domain = domains.find(d => d.id === domainId);
+    
+    if (domain && domain.verificationStatus === VerificationStatus.PENDING) {
+      // If still pending after timeout, mark as failed
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Verification timed out. Please try again."
+      };
+      
+      updateDomain(updatedDomain);
+    }
+  }, timeoutMs);
 };
