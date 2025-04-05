@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Domain, DomainCategory } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
+import { filterOutPurchasedDomains, logPurchasedDomains } from "@/utils/purchaseUtils";
 
 // Import tab components
 import MyDomainsTab from "@/components/dashboard/MyDomainsTab";
@@ -27,10 +28,18 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Dashboard: Loading domains...");
+    logPurchasedDomains();
+    
     if (!window.globalDomains) {
       window.globalDomains = [...mockDomains];
     }
-    setMyDomains(window.globalDomains.filter(domain => domain.sellerId === currentUser.id));
+    
+    // Get user's domains that are not purchased
+    const userDomains = window.globalDomains.filter(domain => domain.sellerId === currentUser.id);
+    console.log(`Dashboard: Found ${userDomains.length} domains owned by current user`);
+    
+    setMyDomains(userDomains);
     setInterestedBuyers([
       { 
         domainId: mockDomains[0].id, 
@@ -90,6 +99,8 @@ const Dashboard = () => {
         window.globalDomains = [...mockDomains];
       }
       
+      console.log(`Adding new domain: ${domainData.domainName}`);
+      
       toast({
         title: "Domain Listed",
         description: `${domainData.domainName} has been successfully listed`,
@@ -117,6 +128,7 @@ const Dashboard = () => {
       
       try {
         localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+        console.log(`Domain ${domainData.domainName} added successfully. Total domains: ${window.globalDomains.length}`);
       } catch (error) {
         console.error('Error saving domains to localStorage:', error);
       }
@@ -137,6 +149,7 @@ const Dashboard = () => {
     // Save to localStorage
     try {
       localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+      console.log(`Domain ${domainToDelete.name} removed. Remaining domains: ${window.globalDomains.length}`);
     } catch (error) {
       console.error('Error saving domains to localStorage:', error);
     }
