@@ -1,7 +1,7 @@
-
 import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
 import { getCurrentUser, isAdmin } from "./authService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
+import { fetchDomainExpirationDate } from "./domainVerificationService";
 
 export interface AdminStats {
   totalDomains: number;
@@ -35,7 +35,7 @@ export const getAdminStats = (): AdminStats | null => {
   };
 };
 
-export const verifyDomain = (domainId: string): boolean => {
+export const verifyDomain = async (domainId: string): Promise<boolean> => {
   if (!isAdmin()) {
     console.error("Unauthorized attempt to verify domain");
     return false;
@@ -43,12 +43,17 @@ export const verifyDomain = (domainId: string): boolean => {
 
   const domain = getAllDomains().find(d => d.id === domainId);
   if (!domain) return false;
+  
+  // Fetch expiration date if possible
+  const expirationDate = await fetchDomainExpirationDate(domain.name);
 
   const updatedDomain: Domain = {
     ...domain,
     isVerified: true,
     verifiedAt: new Date(),
-    verificationStatus: VerificationStatus.VERIFIED
+    verificationStatus: VerificationStatus.VERIFIED,
+    // Update expiration date if found
+    ...(expirationDate && { expirationDate })
   };
 
   return updateDomain(updatedDomain);

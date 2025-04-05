@@ -5,10 +5,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, HelpCircle, Calendar } from "lucide-react";
 import { getVerificationInstructions, checkDnsTxtVerification, startEmailVerification } from "@/services/domainVerificationService";
 import { getCurrentUser } from "@/services/authService";
 import { updateDomain } from "@/services/domainService";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 interface DomainVerificationPanelProps {
   domain: Domain;
@@ -152,6 +154,15 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
                 <p className="mt-2 text-sm text-green-700">
                   Verified on {new Date(domain.verificationDate).toLocaleDateString()}
                 </p>
+              )}
+              {domain.expirationDate && (
+                <div className="mt-2 flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-green-700" />
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Expiration: {format(new Date(domain.expirationDate), 'MMM d, yyyy')}
+                  </Badge>
+                  <span className="text-sm text-green-700">(fetched during verification)</span>
+                </div>
               )}
             </AlertDescription>
           </Alert>

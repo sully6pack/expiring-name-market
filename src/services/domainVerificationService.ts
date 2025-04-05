@@ -9,6 +9,26 @@ export const generateVerificationCode = (): string => {
   return `verify-${Math.random().toString(36).substring(2, 10)}`;
 };
 
+// Fetch domain expiration date
+export const fetchDomainExpirationDate = async (domainName: string): Promise<Date | null> => {
+  console.log(`[VERIFICATION] Fetching expiration date for ${domainName}`);
+  
+  // In production, this would call a WHOIS API or DNS service
+  // For demo purposes, we'll simulate an API response with a random date
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Generate a random expiration date between 1 and 12 months from now
+      const today = new Date();
+      const monthsToAdd = Math.floor(Math.random() * 12) + 1;
+      const expirationDate = new Date(today);
+      expirationDate.setMonth(today.getMonth() + monthsToAdd);
+      
+      console.log(`[VERIFICATION] Fetched expiration date: ${expirationDate.toISOString()}`);
+      resolve(expirationDate);
+    }, 1500);
+  });
+};
+
 // Check DNS TXT record verification
 export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> => {
   if (!domain.verificationCode) {
@@ -21,18 +41,23 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
   console.log(`[VERIFICATION] Checking DNS TXT record for ${domain.name}`);
   
   // Simulate an API call with timeout
-  return new Promise((resolve) => {
-    setTimeout(() => {
+  return new Promise(async (resolve) => {
+    setTimeout(async () => {
       const isSuccessful = Math.random() > 0.3; // 70% success rate for demo
       
       console.log(`[VERIFICATION] DNS verification ${isSuccessful ? 'passed' : 'failed'} for ${domain.name}`);
       
       if (isSuccessful) {
+        // Fetch domain expiration date
+        const expirationDate = await fetchDomainExpirationDate(domain.name);
+        
         const updatedDomain: Domain = {
           ...domain,
           verificationStatus: VerificationStatus.VERIFIED,
           verificationDate: new Date(),
-          isVerified: true
+          isVerified: true,
+          // Update expiration date if we found one
+          ...(expirationDate && { expirationDate })
         };
         updateDomain(updatedDomain);
       } else {
@@ -80,7 +105,7 @@ export const startEmailVerification = async (domain: Domain, ownerEmail: string)
 };
 
 // Verify domain via verification code (email flow)
-export const verifyDomainWithCode = (domainId: string, code: string): boolean => {
+export const verifyDomainWithCode = async (domainId: string, code: string): Promise<boolean> => {
   try {
     // Get domain from our service
     const domains = window.globalDomains || [];
@@ -96,12 +121,17 @@ export const verifyDomainWithCode = (domainId: string, code: string): boolean =>
       return false;
     }
     
+    // Fetch domain expiration date
+    const expirationDate = await fetchDomainExpirationDate(domain.name);
+    
     // Update domain verification status
     const updatedDomain: Domain = {
       ...domain,
       verificationStatus: VerificationStatus.VERIFIED,
       verificationDate: new Date(),
-      isVerified: true
+      isVerified: true,
+      // Update expiration date if we found one
+      ...(expirationDate && { expirationDate })
     };
     
     return updateDomain(updatedDomain);
@@ -112,7 +142,7 @@ export const verifyDomainWithCode = (domainId: string, code: string): boolean =>
 };
 
 // Admin manual verification
-export const adminVerifyDomain = (domainId: string, notes?: string): boolean => {
+export const adminVerifyDomain = async (domainId: string, notes?: string): Promise<boolean> => {
   if (!isAdmin()) {
     console.error("Only admins can manually verify domains");
     return false;
@@ -127,6 +157,9 @@ export const adminVerifyDomain = (domainId: string, notes?: string): boolean => 
       return false;
     }
     
+    // Fetch domain expiration date
+    const expirationDate = await fetchDomainExpirationDate(domain.name);
+    
     // Update domain verification status
     const updatedDomain: Domain = {
       ...domain,
@@ -134,7 +167,9 @@ export const adminVerifyDomain = (domainId: string, notes?: string): boolean => 
       verificationMethod: VerificationMethod.ADMIN_MANUAL,
       verificationDate: new Date(),
       isVerified: true,
-      verificationNotes: notes || "Manually verified by admin"
+      verificationNotes: notes || "Manually verified by admin",
+      // Update expiration date if we found one
+      ...(expirationDate && { expirationDate })
     };
     
     return updateDomain(updatedDomain);

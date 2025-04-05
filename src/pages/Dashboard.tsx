@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -66,17 +65,8 @@ const Dashboard = () => {
   }) => {
     setIsSubmitting(true);
 
-    if (!domainData.expirationDate) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select an expiration date",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!isDomainValid(domainData.expirationDate)) {
+    // Only validate expiration date if one was provided
+    if (domainData.expirationDate && !isDomainValid(domainData.expirationDate)) {
       toast({
         variant: "destructive",
         title: "Invalid Expiration Date",
@@ -110,10 +100,17 @@ const Dashboard = () => {
         description: `${domainData.domainName} has been successfully listed`,
       });
       
+      // Set a default expiration date if one wasn't provided
+      const expirationDate = domainData.expirationDate || (() => {
+        const date = new Date();
+        date.setMonth(date.getMonth() + 3); // Default to 3 months from now
+        return date;
+      })();
+      
       const newDomain: Domain = {
         id: `domain${Math.random().toString(36).substring(7)}`,
         name: domainData.domainName,
-        expirationDate: domainData.expirationDate,
+        expirationDate,
         description: domainData.description,
         sellerId: currentUser.id,
         sellerName: currentUser.name,
