@@ -56,7 +56,11 @@ export const login = async (email: string, password: string): Promise<User | nul
     };
 
     console.log('Login successful:', user);
-    toast.success('Logged in successfully');
+    if (user.isAdmin) {
+      toast.success(`Welcome Admin ${user.name}!`);
+    } else {
+      toast.success('Logged in successfully');
+    }
     return user;
   } catch (error) {
     console.error('Login error:', error);
