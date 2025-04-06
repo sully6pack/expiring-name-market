@@ -1,19 +1,25 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 // Initialize the Supabase client with fallback values for development
-// In production, these should be set in the Supabase project settings
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+
+// Log Supabase configuration (without exposing full keys in production)
+console.log("Supabase Configuration:");
+console.log("URL:", supabaseUrl.substring(0, 8) + "..." + (supabaseUrl.length > 20 ? supabaseUrl.substring(supabaseUrl.length - 5) : ""));
+console.log("API Key:", supabaseAnonKey.substring(0, 3) + "..." + (supabaseAnonKey.length > 10 ? supabaseAnonKey.substring(supabaseAnonKey.length - 3) : ""));
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Show a warning if we're using fallback values
 if (supabaseUrl === 'https://your-project-url.supabase.co' || 
     supabaseAnonKey === 'your-anon-key') {
-  console.warn('Using fallback Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your Supabase project settings.');
-  toast.warning('Supabase credentials not set. Some features may not work correctly.');
+  console.warn('Using fallback Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.');
+  toast.warning('Supabase credentials not configured. Some features won\'t work until you connect to Supabase.', {
+    duration: 8000,
+    id: 'supabase-credentials-warning'
+  });
 }
 
 // Database types - matching our Supabase schema
@@ -89,8 +95,12 @@ export const fetchCurrentUser = async (): Promise<DbUser | null> => {
     if (error) {
       console.error('Error fetching user profile:', error);
       
-      // Check if the error is because the profile doesn't exist
-      if (error.code === 'PGRST116') {
+      // Check if it's a connection error
+      if (error.message.includes("Failed to fetch") || 
+          error.message.includes("NetworkError") ||
+          error.message.includes("Network request failed")) {
+        console.error("Connection to database failed");
+      } else if (error.code === 'PGRST116') {
         console.log('User profile not found, may need to create it');
       }
       

@@ -1,5 +1,5 @@
 import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
-import { getCurrentUser, isAdmin } from "./authService";
+import { getCurrentUser, isAdmin } from "./supabaseAuthService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
 import { fetchDomainExpirationDate } from "./domainVerificationService";
 import { toast } from "sonner";
@@ -27,15 +27,26 @@ export const getAdminStats = async (): Promise<AdminStats | null> => {
   ).length;
 
   try {
+    console.log("Fetching admin stats from Supabase...");
     // Get real stats from Supabase
     const { data: usersData, error: usersError } = await supabase
       .from('users')
       .select('count');
     
+    if (usersError) {
+      console.error("Error fetching user count:", usersError);
+      throw usersError;
+    }
+    
     const { data: transactionsData, error: transactionsError } = await supabase
       .from('transactions')
       .select('amount')
       .eq('status', 'completed');
+    
+    if (transactionsError) {
+      console.error("Error fetching transactions:", transactionsError);
+      throw transactionsError;
+    }
     
     // Fixed: Convert count to number if it's a string
     const totalUsers = usersData && usersData[0] ? 
@@ -162,6 +173,7 @@ export const getUserManagementInfo = async (): Promise<User[]> => {
   }
   
   try {
+    console.log("Fetching users from Supabase...");
     // Fetch real users from Supabase
     const { data, error } = await supabase
       .from('users')
@@ -174,10 +186,12 @@ export const getUserManagementInfo = async (): Promise<User[]> => {
     }
     
     if (!data || data.length === 0) {
+      console.log("No users found in database, returning mock data");
       // Fallback to mock data if no users found
       return getMockUsers();
     }
     
+    console.log(`Found ${data.length} users in database`);
     // Convert database users to our User type
     return data.map(dbUser => ({
       id: dbUser.id,
@@ -322,10 +336,20 @@ export const addUser = async (userData: Partial<User>): Promise<User | null> => 
   }
   
   try {
+    console.log("Adding new user:", userData.email);
+    
+    // Check if Supabase is properly configured
+    if (!supabase || !supabase.auth) {
+      console.error("Supabase is not properly configured");
+      toast.error("Database connection is not properly configured. Please check your Supabase settings.");
+      return null;
+    }
+    
     // Generate a temporary random password
     const temporaryPassword = Math.random().toString(36).substring(2, 10);
     
     // Create auth user (this would usually send an invite email)
+    console.log("Creating auth user...");
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: userData.email,
       password: temporaryPassword,
@@ -334,15 +358,27 @@ export const addUser = async (userData: Partial<User>): Promise<User | null> => 
     
     if (authError) {
       console.error("Error creating auth user:", authError);
-      toast.error(authError.message);
+      
+      // Check if it's a connection error
+      if (authError.message.includes("Failed to fetch") || 
+          authError.message.includes("NetworkError") ||
+          authError.message.includes("Network request failed")) {
+        toast.error("Connection to authentication service failed. Please check your network connection and Supabase configuration.");
+      } else if (authError.message.includes("No auth.users exists")) {
+        toast.error("Supabase authentication is not properly set up. Please check your Supabase configuration.");
+      } else {
+        toast.error(authError.message || "Failed to create user");
+      }
       return null;
     }
     
-    if (!authData.user) {
+    if (!authData || !authData.user) {
+      console.error("Auth data or user is null");
       toast.error("Failed to create user");
       return null;
     }
     
+    console.log("Auth user created, creating user profile...");
     // Create user profile
     const { data, error } = await supabase
       .from('users')
@@ -360,10 +396,21 @@ export const addUser = async (userData: Partial<User>): Promise<User | null> => 
     
     if (error) {
       console.error("Error creating user profile:", error);
-      toast.error("User was created but profile setup failed");
+      
+      // Check if it's a connection error
+      if (error.message.includes("Failed to fetch") || 
+          error.message.includes("NetworkError") ||
+          error.message.includes("Network request failed")) {
+        toast.error("Connection to database failed. Please check your network connection and Supabase configuration.");
+      } else if (error.message.includes("relation \"users\" does not exist")) {
+        toast.error("Users table doesn't exist in the database. Please run the setup SQL script first.");
+      } else {
+        toast.error("User was created but profile setup failed: " + error.message);
+      }
       return null;
     }
     
+    console.log("User profile created successfully");
     toast.success(`User ${userData.name} created successfully`);
     
     return {
@@ -376,9 +423,9 @@ export const addUser = async (userData: Partial<User>): Promise<User | null> => 
       verifiedAt: data.verified_at ? new Date(data.verified_at) : undefined,
       profilePicture: data.profile_image_url,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in addUser:", error);
-    toast.error("Failed to create user");
+    toast.error("Failed to create user: " + (error?.message || "Unknown error"));
     return null;
   }
 };
