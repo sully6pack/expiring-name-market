@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -35,24 +34,18 @@ const Index = () => {
   useEffect(() => {
     console.log("Index: Loading domains from mockDomains");
     
-    // Get domains directly from mockDomains (no reliance on window.globalDomains)
     const validDomains = filterValidDomains([...mockDomains]);
-    
-    // Filter out purchased domains
     const availableDomains = filterOutPurchasedDomains(validDomains);
     
     console.log("Index: Valid domains count:", availableDomains.length);
     
-    // Set featured domains (first 8)
     setFeaturedDomains(availableDomains.slice(0, 8));
     setFilteredFeaturedDomains(availableDomains.slice(0, 8));
     
-    // Get leaderboards - also filter out purchased domains
     setMostLiked(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.MostLiked)).slice(0, 3));
     setAdminPicks(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.AdminPicks)).slice(0, 3));
     setSponsored(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.Sponsored)).slice(0, 3));
     
-    // Get TLDs
     setAvailableTLDs(getUniqueTLDs(availableDomains));
     
     if (availableDomains.length > 0) {
@@ -178,6 +171,11 @@ const Index = () => {
                 <p>Finalize the sale directly with the buyer for $99.</p>
               </CardContent>
             </Card>
+          </div>
+          <div className="text-center mt-8">
+            <Link to="/how-it-works">
+              <Button variant="outline">Learn More About How It Works</Button>
+            </Link>
           </div>
         </div>
       </section>
