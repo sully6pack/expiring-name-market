@@ -37,8 +37,8 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
   return (
     <>
       <Card className="domain-card h-full flex flex-col">
-        <CardHeader>
-          <div className="flex justify-between items-start">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-2">
             <CardTitle className="text-xl break-all">{domain.name}</CardTitle>
             <div className="flex flex-wrap gap-2">
               {domain.isSponsored && (
@@ -59,7 +59,7 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex-grow">
+        <CardContent className="flex-grow pt-2">
           <p className="text-muted-foreground mb-4">{domain.description}</p>
           <div className="mb-3 flex flex-wrap gap-2">
             <Badge variant="secondary" className="flex items-center gap-1 w-fit">
