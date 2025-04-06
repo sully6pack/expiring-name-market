@@ -1,4 +1,3 @@
-
 import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
 import { getCurrentUser, isAdmin } from "./authService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
@@ -38,7 +37,12 @@ export const getAdminStats = async (): Promise<AdminStats | null> => {
       .select('amount')
       .eq('status', 'completed');
     
-    const totalUsers = usersData && usersData[0] ? parseInt(usersData[0].count) : 0;
+    // Fixed: Convert count to number if it's a string
+    const totalUsers = usersData && usersData[0] ? 
+      typeof usersData[0].count === 'string' ? 
+        parseInt(usersData[0].count) : 
+        usersData[0].count 
+      : 0;
     
     // Calculate revenue from transactions
     const revenue = transactionsData?.reduce((sum, transaction) => sum + (transaction.amount || 0), 0) || 0;
