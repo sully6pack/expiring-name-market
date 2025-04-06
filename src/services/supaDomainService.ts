@@ -19,13 +19,24 @@ const validateVerificationStatus = (status: string): VerificationStatus => {
   return VerificationStatus.NOT_STARTED;
 };
 
+// Helper function to ensure verification method is a valid VerificationMethod enum
+const validateVerificationMethod = (method?: string): VerificationMethod | undefined => {
+  if (!method) return undefined;
+  
+  if (Object.values(VerificationMethod).includes(method as VerificationMethod)) {
+    return method as VerificationMethod;
+  }
+  return undefined;
+};
+
 // Enhance conversion to properly handle category type and verification status
 const enhancedConvertDbDomainToDomain = (dbDomain: any): Domain => {
   const baseDomain = convertDbDomainToDomain(dbDomain);
   return {
     ...baseDomain,
     category: validateDomainCategory(dbDomain.category),
-    verificationStatus: validateVerificationStatus(dbDomain.verification_status)
+    verificationStatus: validateVerificationStatus(dbDomain.verification_status),
+    verificationMethod: validateVerificationMethod(dbDomain.verification_method)
   };
 };
 
