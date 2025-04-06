@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import AuthModal from "./AuthModal";
-import { getCurrentUser, logout } from "@/services/authService";
+import { getCurrentUser, logout } from "@/services/supabaseAuthService";
 import { User } from "@/types";
 import { toast } from "sonner";
 
@@ -14,8 +14,12 @@ const Navbar = () => {
 
   // Load current user on mount
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
+    const fetchUser = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    };
+    
+    fetchUser();
   }, []);
 
   const handleSignOut = async () => {
@@ -24,9 +28,9 @@ const Navbar = () => {
     toast.success("Signed out successfully");
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setIsAuthModalOpen(false);
-    const currentUser = getCurrentUser();
+    const currentUser = await getCurrentUser();
     setUser(currentUser);
   };
 

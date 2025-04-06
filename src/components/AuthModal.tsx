@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { currentUser } from "@/lib/mockData";
-import { login, register, requestPasswordReset } from "@/services/authService";
+import { login, register, requestPasswordReset } from "@/services/supabaseAuthService";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -126,7 +125,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={mode === "login" && !showResetPassword ? "Use admin@notrenewing.com for admin access" : ""}
               required
             />
           </div>
@@ -138,7 +136,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === "login" ? "Use admin123 for admin access" : ""}
                 required
               />
             </div>
