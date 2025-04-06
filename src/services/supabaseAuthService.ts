@@ -6,17 +6,25 @@ import { User } from '@/types';
 // Authentication functions using Supabase Auth
 export const login = async (email: string, password: string): Promise<User | null> => {
   try {
+    // Validate inputs
+    if (!email || !password) {
+      toast.error('Please provide both email and password');
+      return null;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
+      console.error('Login error:', error.message);
       toast.error(error.message);
       return null;
     }
 
     if (!data.user) {
+      console.error('Login failed: No user returned from Supabase');
       toast.error('Login failed. Please try again.');
       return null;
     }
@@ -27,6 +35,7 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (!userProfile) {
       // Sign out the user if we can't find their profile
       await supabase.auth.signOut();
+      console.error('Login failed: User profile not found');
       toast.error('User profile not found. Please contact support.');
       return null;
     }
@@ -41,6 +50,7 @@ export const login = async (email: string, password: string): Promise<User | nul
       createdAt: new Date(userProfile.created_at),
     };
 
+    console.log('Login successful:', user);
     toast.success('Logged in successfully');
     return user;
   } catch (error) {

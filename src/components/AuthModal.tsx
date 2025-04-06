@@ -69,11 +69,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
         // Handle login
         const user = await login(email, password);
         if (user) {
+          // Only call onAuthenticate if user is successfully logged in
           if (onAuthenticate) {
             onAuthenticate();
           }
         } else {
-          setError("Invalid email or password");
+          // Don't set an error message here as it's handled by the login function
+          console.log("Login failed");
         }
       } else {
         // Handle registration with validation

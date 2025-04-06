@@ -18,7 +18,9 @@ const Navbar = () => {
     const fetchUser = async () => {
       setIsLoading(true);
       try {
+        console.log("Fetching current user on mount");
         const currentUser = await getCurrentUser();
+        console.log("Current user from getCurrentUser:", currentUser);
         setUser(currentUser);
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -45,7 +47,9 @@ const Navbar = () => {
   const handleAuthSuccess = async () => {
     setIsAuthModalOpen(false);
     try {
+      console.log("Auth success - fetching updated user");
       const currentUser = await getCurrentUser();
+      console.log("Updated current user:", currentUser);
       setUser(currentUser);
       
       // Display user logged in message
