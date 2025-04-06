@@ -1,24 +1,33 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import AuthModal from "./AuthModal";
-import { currentUser } from "@/lib/mockData";
+import { getCurrentUser, logout } from "@/services/authService";
 import { User } from "@/types";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"login" | "register">("login");
-  const [user, setUser] = useState<User | null>(currentUser); // Using mock user for now
+  const [user, setUser] = useState<User | null>(null);
 
-  const handleSignOut = () => {
+  // Load current user on mount
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+  }, []);
+
+  const handleSignOut = async () => {
+    await logout();
     setUser(null);
+    toast.success("Signed out successfully");
   };
 
-  const handleSignIn = () => {
-    // Mock sign-in - in a real app this would call an authentication API
-    setUser(currentUser);
+  const handleAuthSuccess = () => {
     setIsAuthModalOpen(false);
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
   };
 
   const openLoginModal = () => {
@@ -94,7 +103,7 @@ const Navbar = () => {
         onClose={() => setIsAuthModalOpen(false)}
         mode={modalMode}
         setMode={setModalMode}
-        onAuthenticate={handleSignIn}
+        onAuthenticate={handleAuthSuccess}
       />
     </header>
   );

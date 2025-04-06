@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { currentUser } from "@/lib/mockData";
+import { login, register, requestPasswordReset } from "@/services/authService";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,44 +33,58 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const { toast } = useToast();
-
-  // Admin credentials for demo purposes
-  const ADMIN_EMAIL = "admin@notrenewing.com";
-  const ADMIN_PASSWORD = "admin123";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      onClose();
-      
-      // Check if this is an admin login
-      const isAdmin = email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-      
-      // Update the currentUser's admin status based on credentials
-      if (mode === "login") {
-        currentUser.isAdmin = isAdmin;
+    try {
+      if (showResetPassword) {
+        // Handle password reset request
+        const success = await requestPasswordReset(email);
+        if (success) {
+          toast({
+            title: "Password reset link sent",
+            description: "Please check your email for password reset instructions",
+          });
+          setShowResetPassword(false);
+        }
+      } else if (mode === "login") {
+        // Handle login
+        const user = await login(email, password);
+        if (user) {
+          if (onAuthenticate) {
+            onAuthenticate();
+          }
+        }
+      } else {
+        // Handle registration
+        const user = await register(email, name || email.split('@')[0], password);
+        if (user && onAuthenticate) {
+          onAuthenticate();
+        }
       }
-      
-      if (onAuthenticate) {
-        onAuthenticate();
-      }
-      
+    } catch (error) {
+      console.error("Authentication error:", error);
       toast({
-        title: mode === "login" ? "Successfully logged in" : "Registration successful",
-        description: mode === "login" 
-          ? `Welcome${isAdmin ? " Admin" : ""} to NotRenewing.com` 
-          : "Please check your email to verify your account",
+        title: "Authentication failed",
+        description: "Please check your credentials and try again",
+        variant: "destructive",
       });
-    }, 1000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
+    setShowResetPassword(false);
+  };
+
+  const toggleResetPassword = () => {
+    setShowResetPassword(!showResetPassword);
   };
 
   return (
@@ -77,16 +92,22 @@ const AuthModal: React.FC<AuthModalProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === "login" ? "Sign In" : "Create an Account"}
+            {showResetPassword 
+              ? "Reset Password" 
+              : mode === "login" 
+                ? "Sign In" 
+                : "Create an Account"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "login"
-              ? "Enter your credentials to access your account"
-              : "Register to list your expiring domains"}
+            {showResetPassword
+              ? "Enter your email to receive password reset instructions"
+              : mode === "login"
+                ? "Enter your credentials to access your account"
+                : "Register to list your expiring domains"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "register" && (
+          {mode === "register" && !showResetPassword && (
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -105,24 +126,54 @@ const AuthModal: React.FC<AuthModalProps> = ({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={mode === "login" ? "Use admin@notrenewing.com for admin access" : ""}
+              placeholder={mode === "login" && !showResetPassword ? "Use admin@notrenewing.com for admin access" : ""}
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "login" ? "Use admin123 for admin access" : ""}
-              required
-            />
-          </div>
+          {!showResetPassword && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "login" ? "Use admin123 for admin access" : ""}
+                required
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Processing..." : mode === "login" ? "Sign In" : "Register"}
+            {loading 
+              ? "Processing..." 
+              : showResetPassword 
+                ? "Send Reset Link" 
+                : mode === "login" 
+                  ? "Sign In" 
+                  : "Register"}
           </Button>
+          
+          {mode === "login" && !showResetPassword && (
+            <Button 
+              type="button" 
+              variant="link" 
+              className="w-full" 
+              onClick={toggleResetPassword}
+            >
+              Forgot your password?
+            </Button>
+          )}
+          
+          {showResetPassword && (
+            <Button 
+              type="button" 
+              variant="link" 
+              className="w-full" 
+              onClick={toggleResetPassword}
+            >
+              Back to login
+            </Button>
+          )}
         </form>
         <div className="text-center mt-4">
           <Button variant="link" onClick={toggleMode}>

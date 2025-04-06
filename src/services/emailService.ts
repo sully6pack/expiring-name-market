@@ -1,6 +1,6 @@
 
-// This is a placeholder email service that will be replaced with a real email service
-// when integrated with a backend service like Supabase Edge Functions
+import emailjs from 'emailjs-com';
+import { toast } from "sonner";
 
 export type EmailTemplate = 
   | "DOMAIN_PURCHASE"
@@ -18,21 +18,99 @@ export interface EmailData {
   templateData?: Record<string, any>;
 }
 
-// This function would be replaced with a real email sending function in production
+// EmailJS configuration
+const EMAILJS_SERVICE_ID = "service_notrenewing"; // Replace with your actual service ID
+const EMAILJS_USER_ID = "user_your_user_id"; // Replace with your actual user ID
+
+// Map our internal templates to EmailJS template IDs
+const templateIdMap: Record<EmailTemplate, string> = {
+  DOMAIN_PURCHASE: "template_purchase",
+  DOMAIN_LISTING: "template_listing",
+  INTERESTED_BUYER: "template_buyer",
+  PASSWORD_RESET: "template_reset",
+  WELCOME: "template_welcome",
+  DOMAIN_VERIFICATION: "template_verification",
+  VERIFICATION_SUCCESS: "template_ver_success",
+  VERIFICATION_FAILURE: "template_ver_failure"
+};
+
 export const sendEmail = async (
   template: EmailTemplate,
   data: EmailData
 ): Promise<boolean> => {
-  // In production, this would call a Supabase Edge Function to send the email
-  console.log(`[EMAIL SERVICE] Sending email template: ${template}`, data);
-  
-  // For development, we'll simulate success
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`[EMAIL SERVICE] Email sent successfully to ${data.to}`);
-      resolve(true);
-    }, 1000);
-  });
+  try {
+    console.log(`[EMAIL SERVICE] Sending email template: ${template}`, data);
+    
+    // For development, default to using the EmailJS service if available
+    const emailjsTemplateId = templateIdMap[template];
+    
+    // Prepare the email content
+    const emailContent = {
+      to_email: data.to,
+      to_name: data.to.split('@')[0], // Simple name extraction
+      subject: data.subject || getDefaultSubject(template),
+      ...data.templateData
+    };
+    
+    // In production environment, send the actual email
+    if (import.meta.env.PROD) {
+      try {
+        const result = await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          emailjsTemplateId,
+          emailContent,
+          EMAILJS_USER_ID
+        );
+        
+        console.log(`[EMAIL SERVICE] Email sent successfully to ${data.to}`, result);
+        return true;
+      } catch (error) {
+        console.error('[EMAIL SERVICE] Error sending email:', error);
+        toast.error("Failed to send email. Please try again later.");
+        return false;
+      }
+    }
+    
+    // For development, simulate success and log the email details
+    console.log(`[EMAIL SERVICE] 📧 Development mode: Email would be sent with:`, {
+      serviceId: EMAILJS_SERVICE_ID,
+      templateId: emailjsTemplateId,
+      content: emailContent,
+      userId: EMAILJS_USER_ID
+    });
+    
+    // Show toast in development for visibility
+    toast.success(`Email would be sent to ${data.to} (${template})`);
+    
+    return true;
+  } catch (error) {
+    console.error('[EMAIL SERVICE] Error in email service:', error);
+    return false;
+  }
+};
+
+// Get default subject line based on template
+const getDefaultSubject = (template: EmailTemplate): string => {
+  switch (template) {
+    case "DOMAIN_PURCHASE":
+      return "Your Domain Purchase Confirmation";
+    case "DOMAIN_LISTING":
+      return "Your Domain Has Been Listed Successfully";
+    case "INTERESTED_BUYER":
+      return "Someone Is Interested In Your Domain";
+    case "PASSWORD_RESET":
+      return "Reset Your NotRenewing.com Password";
+    case "WELCOME":
+      return "Welcome to NotRenewing.com";
+    case "DOMAIN_VERIFICATION":
+      return "Verify Your Domain Ownership";
+    case "VERIFICATION_SUCCESS":
+      return "Domain Verification Successful";
+    case "VERIFICATION_FAILURE":
+      return "Domain Verification Failed";
+    default:
+      return "Notification from NotRenewing.com";
+  }
 };
 
 // Helper functions for specific email types
@@ -121,7 +199,7 @@ export const sendVerificationFailureEmail = async (
     templateData: {
       domainName,
       reason,
-      supportEmail: "support@example.com",
+      supportEmail: "support@notrenewing.com",
     },
   });
 };
