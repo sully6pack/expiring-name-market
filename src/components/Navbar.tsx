@@ -47,6 +47,11 @@ const Navbar = () => {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
+      
+      // Display user logged in message
+      if (currentUser) {
+        toast.success(`Welcome ${currentUser.name || currentUser.email}!`);
+      }
     } catch (error) {
       console.error("Error fetching user after auth:", error);
     }

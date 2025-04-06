@@ -44,6 +44,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
     try {
       if (showResetPassword) {
         // Handle password reset request
+        if (!email) {
+          setError("Email is required");
+          setLoading(false);
+          return;
+        }
+        
         const success = await requestPasswordReset(email);
         if (success) {
           toast({
@@ -71,17 +77,25 @@ const AuthModal: React.FC<AuthModalProps> = ({
         }
       } else {
         // Handle registration with validation
-        if (!email || !password || password.length < 6) {
-          setError("Please provide a valid email and password (min 6 characters)");
+        if (!email || !password) {
+          setError("Email and password are required");
+          setLoading(false);
+          return;
+        }
+        
+        if (password.length < 6) {
+          setError("Password must be at least 6 characters");
           setLoading(false);
           return;
         }
         
         // Handle registration
         const user = await register(email, name || email.split('@')[0], password);
-        if (user && onAuthenticate) {
-          onAuthenticate();
-        } else if (!user) {
+        if (user) {
+          if (onAuthenticate) {
+            onAuthenticate();
+          }
+        } else {
           setError("Registration failed. Email might already be in use.");
         }
       }

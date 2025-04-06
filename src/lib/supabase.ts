@@ -67,7 +67,12 @@ export const fetchCurrentUser = async (): Promise<DbUser | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
-    if (!user) return null;
+    if (!user) {
+      console.log('No authenticated user found');
+      return null;
+    }
+    
+    console.log('Fetching profile for user:', user.id);
     
     // Get the profile data
     const { data, error } = await supabase
@@ -78,9 +83,21 @@ export const fetchCurrentUser = async (): Promise<DbUser | null> => {
     
     if (error) {
       console.error('Error fetching user profile:', error);
+      
+      // Check if the error is because the profile doesn't exist
+      if (error.code === 'PGRST116') {
+        console.log('User profile not found, may need to create it');
+      }
+      
       return null;
     }
     
+    if (!data) {
+      console.log('No profile data found for user:', user.id);
+      return null;
+    }
+    
+    console.log('User profile found:', data);
     return data as DbUser;
   } catch (error) {
     console.error('Error in fetchCurrentUser:', error);

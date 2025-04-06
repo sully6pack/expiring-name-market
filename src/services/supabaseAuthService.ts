@@ -25,7 +25,9 @@ export const login = async (email: string, password: string): Promise<User | nul
     const userProfile = await fetchCurrentUser();
     
     if (!userProfile) {
-      toast.error('Could not fetch user profile.');
+      // Sign out the user if we can't find their profile
+      await supabase.auth.signOut();
+      toast.error('User profile not found. Please contact support.');
       return null;
     }
 
