@@ -32,14 +32,16 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/validation";
 import { User } from "@/types";
 import { UserCheck, UserX, User as UserIcon, Shield } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateUser, deleteUser, addUser } from "@/services/adminService";
 
 interface UserManagementTabProps {
   users: User[];
-  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
 }
 
-const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
+const UserManagementTab = ({ users }: UserManagementTabProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [newUser, setNewUser] = useState({
     name: "",
@@ -56,52 +58,81 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleToggleAdmin = (userId: string) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId 
-          ? { ...user, isAdmin: !user.isAdmin } 
-          : user
-      )
-    );
-    
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      toast({
-        title: user.isAdmin ? "Admin Rights Removed" : "Admin Rights Granted",
-        description: `${user.name} is ${user.isAdmin ? "no longer" : "now"} an admin`,
+  // Mutations
+  const updateUserMutation = useMutation({
+    mutationFn: ({ userId, updates }: { userId: string, updates: Partial<User> }) => 
+      updateUser(userId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    }
+  });
+
+  const addUserMutation = useMutation({
+    mutationFn: (userData: Partial<User>) => addUser(userData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Reset the form
+      setNewUser({
+        name: "",
+        email: "",
+        isAdmin: false
       });
     }
+  });
+
+  const handleToggleAdmin = (user: User) => {
+    updateUserMutation.mutate(
+      { 
+        userId: user.id, 
+        updates: { isAdmin: !user.isAdmin }
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: user.isAdmin ? "Admin Rights Removed" : "Admin Rights Granted",
+            description: `${user.name} is ${user.isAdmin ? "no longer" : "now"} an admin`,
+          });
+        }
+      }
+    );
   };
 
-  const handleToggleVerification = (userId: string) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId 
-          ? { ...user, isVerified: !user.isVerified, verifiedAt: !user.isVerified ? new Date() : undefined } 
-          : user
-      )
+  const handleToggleVerification = (user: User) => {
+    updateUserMutation.mutate(
+      { 
+        userId: user.id, 
+        updates: { 
+          isVerified: !user.isVerified, 
+          verifiedAt: !user.isVerified ? new Date() : undefined 
+        }
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: user.isVerified ? "Verification Removed" : "User Verified",
+            description: `${user.name} is ${user.isVerified ? "no longer verified" : "now verified"}`,
+          });
+        }
+      }
     );
-    
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      toast({
-        title: user.isVerified ? "Verification Removed" : "User Verified",
-        description: `${user.name} is ${user.isVerified ? "no longer verified" : "now verified"}`,
-      });
-    }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-    
-    if (user) {
-      toast({
-        title: "User Removed",
-        description: `${user.name} has been removed from the platform`,
-      });
-    }
+  const handleDeleteUser = (user: User) => {
+    deleteUserMutation.mutate(user.id, {
+      onSuccess: () => {
+        toast({
+          title: "User Removed",
+          description: `${user.name} has been removed from the platform`,
+        });
+      }
+    });
   };
 
   const handleAddUser = () => {
@@ -114,29 +145,21 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
       return;
     }
     
-    const newUserId = `user_${Math.random().toString(36).substring(2, 9)}`;
-    
-    const createdUser: User = {
-      id: newUserId,
+    addUserMutation.mutate({
       name: newUser.name,
       email: newUser.email,
       isAdmin: newUser.isAdmin,
       isVerified: false,
       createdAt: new Date(),
-    };
-    
-    setUsers(prevUsers => [createdUser, ...prevUsers]);
-    
-    toast({
-      title: "User Added",
-      description: `${newUser.name} has been added to the platform`,
-    });
-    
-    // Reset the form
-    setNewUser({
-      name: "",
-      email: "",
-      isAdmin: false
+    }, {
+      onSuccess: (createdUser) => {
+        if (createdUser) {
+          toast({
+            title: "User Added",
+            description: `${createdUser.name} has been added to the platform`,
+          });
+        }
+      }
     });
   };
 
@@ -243,7 +266,7 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
                       <Switch
                         id={`verified-${user.id}`}
                         checked={!!user.isVerified}
-                        onCheckedChange={() => handleToggleVerification(user.id)}
+                        onCheckedChange={() => handleToggleVerification(user)}
                       />
                       <Badge variant={user.isVerified ? "default" : "outline"}>
                         {user.isVerified ? "Verified" : "Unverified"}
@@ -255,7 +278,7 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
                       <Switch
                         id={`admin-${user.id}`}
                         checked={!!user.isAdmin}
-                        onCheckedChange={() => handleToggleAdmin(user.id)}
+                        onCheckedChange={() => handleToggleAdmin(user)}
                       />
                       {user.isAdmin && (
                         <Badge variant="secondary">
@@ -270,7 +293,7 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleToggleVerification(user.id)}
+                        onClick={() => handleToggleVerification(user)}
                       >
                         {user.isVerified ? (
                           <UserX className="h-4 w-4" />
@@ -283,7 +306,7 @@ const UserManagementTab = ({ users, setUsers }: UserManagementTabProps) => {
                         variant="ghost"
                         size="sm"
                         className="text-red-500 hover:text-red-700"
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleDeleteUser(user)}
                       >
                         Remove
                       </Button>
