@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { login, register, requestPasswordReset } from "@/services/supabaseAuthService";
 
 interface AuthModalProps {
@@ -34,7 +34,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,11 +49,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
         
+        console.log("Requesting password reset for:", email);
         const success = await requestPasswordReset(email);
         if (success) {
-          toast({
-            title: "Password reset link sent",
-            description: "Please check your email for password reset instructions",
+          toast("Password reset link sent", {
+            description: "Please check your email for password reset instructions"
           });
           setShowResetPassword(false);
         }
@@ -66,16 +65,18 @@ const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
         
+        console.log("Attempting to log in user:", email);
         // Handle login
         const user = await login(email, password);
         if (user) {
+          console.log("Login successful, calling onAuthenticate");
           // Only call onAuthenticate if user is successfully logged in
           if (onAuthenticate) {
             onAuthenticate();
           }
         } else {
-          // Don't set an error message here as it's handled by the login function
-          console.log("Login failed");
+          console.log("Login failed, not calling onAuthenticate");
+          // Error toasts are handled in the login function
         }
       } else {
         // Handle registration with validation
@@ -91,21 +92,23 @@ const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
         
+        console.log("Attempting to register user:", email);
         // Handle registration
         const user = await register(email, name || email.split('@')[0], password);
         if (user) {
+          console.log("Registration successful, calling onAuthenticate");
           if (onAuthenticate) {
             onAuthenticate();
           }
         } else {
+          console.log("Registration failed");
           setError("Registration failed. Email might already be in use.");
         }
       }
     } catch (error) {
       console.error("Authentication error:", error);
       setError("Authentication failed. Please try again.");
-      toast({
-        title: "Authentication failed",
+      toast("Authentication failed", {
         description: "Please check your credentials and try again",
         variant: "destructive",
       });

@@ -12,30 +12,35 @@ export const login = async (email: string, password: string): Promise<User | nul
       return null;
     }
 
+    console.log('Attempting login with:', { email, passwordLength: password.length });
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      console.error('Login error:', error.message);
-      toast.error(error.message);
+      console.error('Login error from Supabase:', error.message);
+      toast.error(error.message || 'Login failed. Please check your credentials.');
       return null;
     }
 
-    if (!data.user) {
+    if (!data || !data.user) {
       console.error('Login failed: No user returned from Supabase');
       toast.error('Login failed. Please try again.');
       return null;
     }
 
+    console.log('Auth successful, fetching user profile for user ID:', data.user.id);
+    
     // Get the user profile from our database
     const userProfile = await fetchCurrentUser();
+    console.log('User profile fetched:', userProfile);
     
     if (!userProfile) {
       // Sign out the user if we can't find their profile
+      console.error('Login failed: User profile not found for ID:', data.user.id);
       await supabase.auth.signOut();
-      console.error('Login failed: User profile not found');
       toast.error('User profile not found. Please contact support.');
       return null;
     }
@@ -121,13 +126,16 @@ export const register = async (email: string, name: string, password: string): P
 
 export const logout = async (): Promise<void> => {
   try {
+    console.log('Attempting to sign out user');
     const { error } = await supabase.auth.signOut();
 
     if (error) {
+      console.error('Logout error:', error.message);
       toast.error(error.message);
       return;
     }
 
+    console.log('User signed out successfully');
     toast.success('Logged out successfully');
   } catch (error) {
     console.error('Logout error:', error);
@@ -137,16 +145,27 @@ export const logout = async (): Promise<void> => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const { data } = await supabase.auth.getUser();
+    console.log('Getting current user from Supabase auth');
+    const { data, error } = await supabase.auth.getUser();
 
-    if (!data.user) {
+    if (error) {
+      console.error('Error getting current user from auth:', error.message);
       return null;
     }
 
+    if (!data || !data.user) {
+      console.log('No authenticated user found');
+      return null;
+    }
+
+    console.log('Auth user found, ID:', data.user.id);
+    
     // Get the user profile from our database
     const userProfile = await fetchCurrentUser();
+    console.log('User profile from database:', userProfile);
     
     if (!userProfile) {
+      console.error('User profile not found in database');
       return null;
     }
 

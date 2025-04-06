@@ -65,14 +65,19 @@ export type DbTransaction = {
 // Utility functions for database operations
 export const fetchCurrentUser = async (): Promise<DbUser | null> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (!user) {
-      console.log('No authenticated user found');
+    if (authError) {
+      console.error('Auth error in fetchCurrentUser:', authError);
       return null;
     }
     
-    console.log('Fetching profile for user:', user.id);
+    if (!user) {
+      console.log('No authenticated user found in fetchCurrentUser');
+      return null;
+    }
+    
+    console.log('Fetching profile for user ID:', user.id);
     
     // Get the profile data
     const { data, error } = await supabase

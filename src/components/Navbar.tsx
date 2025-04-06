@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,12 +17,12 @@ const Navbar = () => {
     const fetchUser = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching current user on mount");
+        console.log("Navbar: Fetching current user on mount");
         const currentUser = await getCurrentUser();
-        console.log("Current user from getCurrentUser:", currentUser);
+        console.log("Navbar: Current user from getCurrentUser:", currentUser);
         setUser(currentUser);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Navbar: Error fetching user:", error);
         toast.error("Failed to load user information");
       } finally {
         setIsLoading(false);
@@ -35,11 +34,12 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("Navbar: Attempting to sign out");
       await logout();
       setUser(null);
       toast.success("Signed out successfully");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Navbar: Error signing out:", error);
       toast.error("Failed to sign out");
     }
   };
@@ -47,9 +47,9 @@ const Navbar = () => {
   const handleAuthSuccess = async () => {
     setIsAuthModalOpen(false);
     try {
-      console.log("Auth success - fetching updated user");
+      console.log("Navbar: Auth success - fetching updated user");
       const currentUser = await getCurrentUser();
-      console.log("Updated current user:", currentUser);
+      console.log("Navbar: Updated current user:", currentUser);
       setUser(currentUser);
       
       // Display user logged in message
@@ -57,7 +57,7 @@ const Navbar = () => {
         toast.success(`Welcome ${currentUser.name || currentUser.email}!`);
       }
     } catch (error) {
-      console.error("Error fetching user after auth:", error);
+      console.error("Navbar: Error fetching user after auth:", error);
     }
   };
 
