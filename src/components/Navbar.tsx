@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,26 @@ const Navbar = () => {
       setIsLoading(true);
       try {
         console.log("Navbar: Fetching current user on mount");
+        
+        // Try to get user from Supabase first
         const currentUser = await getCurrentUser();
-        console.log("Navbar: Current user from getCurrentUser:", currentUser);
-        setUser(currentUser);
+        
+        if (currentUser) {
+          console.log("Navbar: Current user from getCurrentUser:", currentUser);
+          setUser(currentUser);
+        } else {
+          // If no Supabase user, check for mock admin user in localStorage
+          const storedUser = localStorage.getItem("currentUser");
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              console.log("Navbar: Found stored user:", parsedUser);
+              setUser(parsedUser);
+            } catch (error) {
+              console.error("Navbar: Error parsing stored user:", error);
+            }
+          }
+        }
       } catch (error) {
         console.error("Navbar: Error fetching user:", error);
         toast.error("Failed to load user information");
@@ -35,7 +53,17 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       console.log("Navbar: Attempting to sign out");
-      await logout();
+      
+      // Check if we're using the mock admin user
+      if (user?.email === "admin@notrenewing.com") {
+        // Use the mock logout
+        await import("@/services/authService").then(module => module.logout());
+        console.log("Navbar: Admin signed out via mock auth");
+      } else {
+        // Use Supabase logout
+        await logout();
+      }
+      
       setUser(null);
       toast.success("Signed out successfully");
     } catch (error) {
@@ -48,13 +76,30 @@ const Navbar = () => {
     setIsAuthModalOpen(false);
     try {
       console.log("Navbar: Auth success - fetching updated user");
-      const currentUser = await getCurrentUser();
-      console.log("Navbar: Updated current user:", currentUser);
-      setUser(currentUser);
       
-      // Display user logged in message
+      // Try Supabase first
+      const currentUser = await getCurrentUser();
+      
       if (currentUser) {
-        toast.success(`Welcome ${currentUser.name || currentUser.email}!`);
+        console.log("Navbar: Updated current user from Supabase:", currentUser);
+        setUser(currentUser);
+      } else {
+        // Check for mock admin user
+        const storedUser = localStorage.getItem("currentUser");
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            console.log("Navbar: Found stored user after auth:", parsedUser);
+            setUser(parsedUser);
+            
+            // Display admin logged in message
+            if (parsedUser.isAdmin) {
+              toast.success(`Welcome Admin ${parsedUser.name || parsedUser.email}!`);
+            }
+          } catch (error) {
+            console.error("Navbar: Error parsing stored user after auth:", error);
+          }
+        }
       }
     } catch (error) {
       console.error("Navbar: Error fetching user after auth:", error);

@@ -66,17 +66,33 @@ const AuthModal: React.FC<AuthModalProps> = ({
         }
         
         console.log("Attempting to log in user:", email);
-        // Handle login
-        const user = await login(email, password);
-        if (user) {
-          console.log("Login successful, calling onAuthenticate");
-          // Only call onAuthenticate if user is successfully logged in
-          if (onAuthenticate) {
-            onAuthenticate();
+        
+        // Special case for admin user using mock credentials
+        if (email === "admin@notrenewing.com" && password === "admin123") {
+          console.log("Using admin credentials, falling back to mock auth service");
+          // Use the regular authService for admin login
+          const adminUser = await import("@/services/authService").then(module => 
+            module.login(email, password)
+          );
+          
+          if (adminUser) {
+            console.log("Admin login successful via mock auth");
+            toast.success("Logged in as admin");
+            if (onAuthenticate) {
+              onAuthenticate();
+            }
           }
         } else {
-          console.log("Login failed, not calling onAuthenticate");
-          // Error toasts are handled in the login function
+          // Regular login through Supabase
+          const user = await login(email, password);
+          if (user) {
+            console.log("Login successful, calling onAuthenticate");
+            if (onAuthenticate) {
+              onAuthenticate();
+            }
+          } else {
+            console.log("Login failed, not calling onAuthenticate");
+          }
         }
       } else {
         // Handle registration with validation
