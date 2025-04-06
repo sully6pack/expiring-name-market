@@ -1,0 +1,198 @@
+
+import { toast } from 'sonner';
+import { supabase, createUserProfile, fetchCurrentUser } from '@/lib/supabase';
+import { User } from '@/types';
+
+// Authentication functions using Supabase Auth
+export const login = async (email: string, password: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
+
+    if (!data.user) {
+      toast.error('Login failed. Please try again.');
+      return null;
+    }
+
+    // Get the user profile from our database
+    const userProfile = await fetchCurrentUser();
+    
+    if (!userProfile) {
+      toast.error('Could not fetch user profile.');
+      return null;
+    }
+
+    // Convert to our User type
+    const user: User = {
+      id: userProfile.id,
+      email: userProfile.email,
+      name: userProfile.name,
+      isAdmin: userProfile.is_admin,
+      isVerified: true,
+      createdAt: new Date(userProfile.created_at),
+    };
+
+    toast.success('Logged in successfully');
+    return user;
+  } catch (error) {
+    console.error('Login error:', error);
+    toast.error('An unexpected error occurred. Please try again.');
+    return null;
+  }
+};
+
+export const register = async (email: string, name: string, password: string): Promise<User | null> => {
+  try {
+    // Sign up the user with Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+        },
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
+
+    if (!data.user) {
+      toast.error('Registration failed. Please try again.');
+      return null;
+    }
+
+    // Create a user profile in our database
+    const profileCreated = await createUserProfile(
+      data.user.id,
+      email,
+      name || email.split('@')[0]
+    );
+
+    if (!profileCreated) {
+      toast.error('Could not create user profile.');
+      return null;
+    }
+
+    const user: User = {
+      id: data.user.id,
+      email,
+      name: name || email.split('@')[0],
+      isAdmin: false,
+      isVerified: !!data.user.email_confirmed_at,
+      createdAt: new Date(),
+    };
+
+    toast.success('Registration successful! Please check your email to verify your account.');
+    return user;
+  } catch (error) {
+    console.error('Registration error:', error);
+    toast.error('An unexpected error occurred. Please try again.');
+    return null;
+  }
+};
+
+export const logout = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success('Logged out successfully');
+  } catch (error) {
+    console.error('Logout error:', error);
+    toast.error('Error during logout');
+  }
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  try {
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) {
+      return null;
+    }
+
+    // Get the user profile from our database
+    const userProfile = await fetchCurrentUser();
+    
+    if (!userProfile) {
+      return null;
+    }
+
+    // Convert to our User type
+    return {
+      id: userProfile.id,
+      email: userProfile.email,
+      name: userProfile.name,
+      isAdmin: userProfile.is_admin,
+      isVerified: true,
+      createdAt: new Date(userProfile.created_at),
+    };
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return null;
+  }
+};
+
+export const isAdmin = async (): Promise<boolean> => {
+  const user = await getCurrentUser();
+  return user?.isAdmin || false;
+};
+
+export const requestPasswordReset = async (email: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+
+    toast.success('Password reset instructions sent to your email');
+    return true;
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    toast.error('Failed to send password reset instructions');
+    return false;
+  }
+};
+
+export const resetPassword = async (newPassword: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+
+    toast.success('Password has been reset successfully. Please log in.');
+    return true;
+  } catch (error) {
+    console.error('Password reset error:', error);
+    toast.error('Failed to reset password');
+    return false;
+  }
+};
+
+export const isAuthenticated = async (): Promise<boolean> => {
+  const user = await getCurrentUser();
+  return !!user;
+};

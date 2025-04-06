@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import DomainDebugger from "./components/DomainDebugger";
 import VerifyDomain from "./pages/VerifyDomain";
 import EmailConfigBanner from "./components/EmailConfigBanner";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/checkout/:domainId" element={<Checkout />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/verify-domain/:domainId" element={<VerifyDomain />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
