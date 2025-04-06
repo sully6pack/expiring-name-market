@@ -26,6 +26,8 @@ export const fetchFAQs = async (): Promise<FAQ[]> => {
       return [];
     }
     
+    if (!data) return [];
+    
     return data.map(item => ({
       id: item.id,
       question: item.question,
@@ -63,6 +65,8 @@ export const addFAQ = async (faq: Omit<FAQ, 'id' | 'createdAt' | 'updatedAt'>): 
     }
     
     toast.success("FAQ added successfully");
+    
+    if (!data) return null;
     
     return {
       id: data.id,
