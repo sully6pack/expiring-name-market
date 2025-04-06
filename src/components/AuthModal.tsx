@@ -108,10 +108,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     } catch (error) {
       console.error("Authentication error:", error);
       setError("Authentication failed. Please try again.");
-      toast("Authentication failed", {
-        description: "Please check your credentials and try again",
-        variant: "destructive",
-      });
+      toast.error("Authentication failed. Please check your credentials and try again.");
     } finally {
       setLoading(false);
     }
