@@ -1,7 +1,22 @@
-
 import { supabase, convertDbDomainToDomain, fetchDomainById, updateDomainVerification } from '@/lib/supabase';
 import { Domain, DomainCategory, VerificationStatus, VerificationMethod } from '@/types';
 import { extractTLD } from '@/utils/domainUtils';
+
+// Helper function to ensure domain category is a valid DomainCategory enum
+const validateDomainCategory = (category: string): DomainCategory => {
+  if (Object.values(DomainCategory).includes(category as DomainCategory)) {
+    return category as DomainCategory;
+  }
+  return DomainCategory.Other;
+};
+
+// Enhance conversion to properly handle category type
+const enhancedConvertDbDomainToDomain = (dbDomain: any): Domain => {
+  return {
+    ...convertDbDomainToDomain(dbDomain),
+    category: validateDomainCategory(dbDomain.category)
+  };
+};
 
 // Get all domains
 export const getAllDomains = async (): Promise<Domain[]> => {
@@ -16,7 +31,7 @@ export const getAllDomains = async (): Promise<Domain[]> => {
       return [];
     }
     
-    return data.map(convertDbDomainToDomain);
+    return data.map(enhancedConvertDbDomainToDomain);
   } catch (error) {
     console.error('Error in getAllDomains:', error);
     return [];
@@ -38,7 +53,7 @@ export const getAvailableDomains = async (): Promise<Domain[]> => {
       return [];
     }
     
-    return data.map(convertDbDomainToDomain);
+    return data.map(enhancedConvertDbDomainToDomain);
   } catch (error) {
     console.error('Error in getAvailableDomains:', error);
     return [];
@@ -59,7 +74,7 @@ export const getVerifiedDomains = async (): Promise<Domain[]> => {
       return [];
     }
     
-    return data.map(convertDbDomainToDomain);
+    return data.map(enhancedConvertDbDomainToDomain);
   } catch (error) {
     console.error('Error in getVerifiedDomains:', error);
     return [];
@@ -80,7 +95,7 @@ export const getDomainsBySeller = async (sellerId: string): Promise<Domain[]> =>
       return [];
     }
     
-    return data.map(convertDbDomainToDomain);
+    return data.map(enhancedConvertDbDomainToDomain);
   } catch (error) {
     console.error('Error in getDomainsBySeller:', error);
     return [];
@@ -102,7 +117,7 @@ export const getAvailableDomainsBySeller = async (sellerId: string): Promise<Dom
       return [];
     }
     
-    return data.map(convertDbDomainToDomain);
+    return data.map(enhancedConvertDbDomainToDomain);
   } catch (error) {
     console.error('Error in getAvailableDomainsBySeller:', error);
     return [];
@@ -118,7 +133,7 @@ export const getDomainById = async (id: string): Promise<Domain | undefined> => 
       return undefined;
     }
     
-    return convertDbDomainToDomain(domain);
+    return enhancedConvertDbDomainToDomain(domain);
   } catch (error) {
     console.error('Error in getDomainById:', error);
     return undefined;
@@ -164,7 +179,7 @@ export const addDomain = async (domainData: {
       return null;
     }
     
-    return convertDbDomainToDomain(data);
+    return enhancedConvertDbDomainToDomain(data);
   } catch (error) {
     console.error('Error in addDomain:', error);
     return null;

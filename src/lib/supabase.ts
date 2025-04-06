@@ -2,19 +2,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
-// Initialize the Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Initialize the Supabase client with fallback values for development
+// In production, these should be set in the Supabase project settings
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase credentials');
-  toast.error('Error connecting to database. Please check your configuration.');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Show a warning if we're using fallback values
+if (supabaseUrl === 'https://your-project-url.supabase.co' || 
+    supabaseAnonKey === 'your-anon-key') {
+  console.warn('Using fallback Supabase credentials. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your Supabase project settings.');
+  toast.warning('Supabase credentials not set. Some features may not work correctly.');
 }
-
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
 
 // Database types - matching our Supabase schema
 export type DbUser = {
