@@ -16,6 +16,10 @@ import VerifyDomain from "./pages/VerifyDomain";
 import EmailConfigBanner from "./components/EmailConfigBanner";
 import ResetPassword from "./pages/ResetPassword";
 import HowItWorks from "./pages/HowItWorks";
+import FAQ from "./pages/FAQ";
+import Contact from "./pages/Contact";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +40,10 @@ const App = () => (
           <Route path="/verify-domain/:domainId" element={<VerifyDomain />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
