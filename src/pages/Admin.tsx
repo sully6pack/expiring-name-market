@@ -19,6 +19,7 @@ import {
   AdminStats
 } from "@/services/adminService";
 import UserManagementTab from "@/components/admin/UserManagementTab";
+import FAQManagementTab from "@/components/admin/FAQManagementTab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentUser } from "@/lib/mockData";
 import { getAllDomains } from "@/services/domainService";
@@ -160,6 +161,7 @@ const Admin = () => {
           <TabsList>
             <TabsTrigger value="domains">Manage Domains</TabsTrigger>
             <TabsTrigger value="users">Manage Users</TabsTrigger>
+            <TabsTrigger value="faqs">Manage FAQs</TabsTrigger>
             <TabsTrigger value="stats">Statistics</TabsTrigger>
           </TabsList>
           
@@ -234,6 +236,10 @@ const Admin = () => {
           
           <TabsContent value="users">
             <UserManagementTab users={users} />
+          </TabsContent>
+          
+          <TabsContent value="faqs">
+            <FAQManagementTab />
           </TabsContent>
           
           <TabsContent value="stats">
