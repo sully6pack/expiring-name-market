@@ -50,6 +50,12 @@ export const login = async (email: string, password: string): Promise<User | nul
 
 export const register = async (email: string, name: string, password: string): Promise<User | null> => {
   try {
+    // Validate inputs
+    if (!email || !password || password.length < 6) {
+      toast.error('Please provide a valid email and password (min 6 characters)');
+      return null;
+    }
+    
     // Sign up the user with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,

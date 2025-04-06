@@ -33,11 +33,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       if (showResetPassword) {
@@ -51,22 +53,41 @@ const AuthModal: React.FC<AuthModalProps> = ({
           setShowResetPassword(false);
         }
       } else if (mode === "login") {
+        // Handle login with validation
+        if (!email || !password) {
+          setError("Email and password are required");
+          setLoading(false);
+          return;
+        }
+        
         // Handle login
         const user = await login(email, password);
         if (user) {
           if (onAuthenticate) {
             onAuthenticate();
           }
+        } else {
+          setError("Invalid email or password");
         }
       } else {
+        // Handle registration with validation
+        if (!email || !password || password.length < 6) {
+          setError("Please provide a valid email and password (min 6 characters)");
+          setLoading(false);
+          return;
+        }
+        
         // Handle registration
         const user = await register(email, name || email.split('@')[0], password);
         if (user && onAuthenticate) {
           onAuthenticate();
+        } else if (!user) {
+          setError("Registration failed. Email might already be in use.");
         }
       }
     } catch (error) {
       console.error("Authentication error:", error);
+      setError("Authentication failed. Please try again.");
       toast({
         title: "Authentication failed",
         description: "Please check your credentials and try again",
@@ -80,10 +101,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
     setShowResetPassword(false);
+    setError(null);
   };
 
   const toggleResetPassword = () => {
     setShowResetPassword(!showResetPassword);
+    setError(null);
   };
 
   return (
@@ -140,6 +163,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
               />
             </div>
           )}
+          
+          {error && (
+            <div className="text-sm font-medium text-destructive">{error}</div>
+          )}
+          
           <Button type="submit" className="w-full" disabled={loading}>
             {loading 
               ? "Processing..." 

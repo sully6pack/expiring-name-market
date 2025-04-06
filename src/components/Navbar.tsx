@@ -11,27 +11,45 @@ const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"login" | "register">("login");
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load current user on mount
   useEffect(() => {
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      setIsLoading(true);
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        toast.error("Failed to load user information");
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     fetchUser();
   }, []);
 
   const handleSignOut = async () => {
-    await logout();
-    setUser(null);
-    toast.success("Signed out successfully");
+    try {
+      await logout();
+      setUser(null);
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    }
   };
 
   const handleAuthSuccess = async () => {
     setIsAuthModalOpen(false);
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
+    try {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error("Error fetching user after auth:", error);
+    }
   };
 
   const openLoginModal = () => {
@@ -75,7 +93,11 @@ const Navbar = () => {
         </nav>
 
         <div className="flex items-center space-x-4">
-          {user ? (
+          {isLoading ? (
+            <div className="flex items-center gap-4">
+              <Button variant="outline" disabled>Loading...</Button>
+            </div>
+          ) : user ? (
             <div className="flex items-center gap-4">
               <Link to="/dashboard">
                 <Button variant="outline">Dashboard</Button>
