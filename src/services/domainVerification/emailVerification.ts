@@ -4,16 +4,7 @@ import { updateDomain } from "../domainService";
 import { getWhoisEmail } from "./verificationUtils";
 import { sendDomainVerificationEmail } from "../emailService";
 import { supabase } from "@/lib/supabase";
-
-// Generate a random verification code
-const generateVerificationCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
+import { generateVerificationCode } from "./verificationHelpers";
 
 // Start email verification process
 export const startEmailVerification = async (domain: Domain, userEmail: string): Promise<boolean> => {
@@ -37,16 +28,16 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
   }
   
   try {
-    // Get the domain's WHOIS email
+    // Determine the target email address
+    // Try to get email from WHOIS, fallback to user email
+    let targetEmail = userEmail;
+    
     const whoisEmail = await getWhoisEmail(domain.name);
-    console.log(`[VERIFICATION] WHOIS email for ${domain.name}: ${whoisEmail || 'Not found'}`);
-    
-    // If no WHOIS email is found, use the user's email
-    const targetEmail = whoisEmail || userEmail;
-    
-    if (!targetEmail) {
-      console.error("No email address available for verification");
-      return false;
+    if (whoisEmail) {
+      targetEmail = whoisEmail;
+      console.log(`[VERIFICATION] Using WHOIS email: ${targetEmail}`);
+    } else {
+      console.log(`[VERIFICATION] No WHOIS email found, using user email: ${targetEmail}`);
     }
     
     // Generate verification URL
@@ -61,11 +52,11 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
     );
     
     if (!emailSent) {
-      console.error("Failed to send verification email");
+      console.error(`[VERIFICATION] Failed to send verification email for ${domain.name}`);
       return false;
     }
     
-    console.log(`[VERIFICATION] Verification email sent to ${targetEmail}`);
+    console.log(`[VERIFICATION] Verification email sent for ${domain.name}`);
     
     // Update domain status to pending
     const updatedDomain: Domain = {
@@ -79,42 +70,31 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
     
     return true;
   } catch (error) {
-    console.error("Error in startEmailVerification:", error);
-    
-    // Update domain status to failed
-    const updatedDomain: Domain = {
-      ...domain,
-      verificationStatus: VerificationStatus.FAILED,
-      verificationDate: new Date(),
-      verificationNotes: "Failed to send verification email. Please try again."
-    };
-    
-    await updateDomain(updatedDomain);
-    
+    console.error(`[VERIFICATION] Error during email verification for ${domain.name}:`, error);
     return false;
   }
 };
 
-// Verify domain with code from email
+// Verify domain with verification code
 export const verifyDomainWithCode = async (domainId: string, code: string): Promise<boolean> => {
   console.log(`[VERIFICATION] Verifying domain ${domainId} with code ${code}`);
   
   try {
-    // Get the domain from the database
-    const { data: domainData, error: domainError } = await supabase
+    // Get domain from database
+    const { data: domainData, error: fetchError } = await supabase
       .from('domains')
       .select('*')
       .eq('id', domainId)
       .single();
     
-    if (domainError || !domainData) {
-      console.error("Error fetching domain:", domainError);
+    if (fetchError || !domainData) {
+      console.error("[VERIFICATION] Error fetching domain:", fetchError);
       return false;
     }
     
-    // Check if the verification code matches
+    // Check if verification code matches
     if (domainData.verification_code !== code) {
-      console.error("Verification code doesn't match");
+      console.error("[VERIFICATION] Verification code mismatch");
       
       // Update domain status to failed
       await supabase
@@ -122,27 +102,33 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
         .update({
           verification_status: VerificationStatus.FAILED,
           verification_date: new Date().toISOString(),
-          verification_notes: "Invalid verification code."
+          verification_notes: "Verification failed: Invalid verification code"
         })
         .eq('id', domainId);
       
       return false;
     }
     
-    // Verification successful, update domain
-    await supabase
+    // Update domain status to verified
+    const { error: updateError } = await supabase
       .from('domains')
       .update({
         verification_status: VerificationStatus.VERIFIED,
         verification_date: new Date().toISOString(),
+        verification_notes: "Domain verified successfully via email verification",
         is_verified: true
       })
       .eq('id', domainId);
     
-    console.log(`[VERIFICATION] Domain ${domainId} verified successfully`);
+    if (updateError) {
+      console.error("[VERIFICATION] Error updating domain status:", updateError);
+      return false;
+    }
+    
+    console.log("[VERIFICATION] Domain verified successfully");
     return true;
   } catch (error) {
-    console.error("Error in verifyDomainWithCode:", error);
+    console.error("[VERIFICATION] Error during verification:", error);
     return false;
   }
 };
