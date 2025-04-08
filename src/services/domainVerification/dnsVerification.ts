@@ -1,5 +1,5 @@
 
-import { Domain, VerificationStatus } from "@/types";
+import { Domain, VerificationStatus, VerificationMethod } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { updateDomainVerificationStatus } from "@/services/supaDomainService";
 
@@ -7,11 +7,17 @@ import { updateDomainVerificationStatus } from "@/services/supaDomainService";
 export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> => {
   if (!domain.verificationCode) {
     console.error("Missing verification code for DNS TXT check");
+    await updateDomainVerificationStatus(
+      domain.id, 
+      VerificationStatus.FAILED,
+      VerificationMethod.DNS_TXT,
+      "Missing verification code"
+    );
     return false;
   }
 
   try {
-    console.log(`Checking DNS TXT verification for domain: ${domain.name}`);
+    console.log(`Checking DNS TXT verification for domain: ${domain.name} with code: ${domain.verificationCode}`);
     
     const { data, error } = await supabase.functions.invoke('domain-verification', {
       body: {
@@ -26,19 +32,19 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       await updateDomainVerificationStatus(
         domain.id, 
         VerificationStatus.FAILED,
-        undefined,
+        VerificationMethod.DNS_TXT,
         "Error checking DNS TXT record: " + error.message
       );
       return false;
     }
     
-    if (!data.success) {
-      console.error("DNS TXT check returned error:", data.error);
+    if (!data || !data.success) {
+      console.error("DNS TXT check returned error:", data?.error || "No data returned");
       await updateDomainVerificationStatus(
         domain.id, 
         VerificationStatus.FAILED,
-        undefined,
-        "DNS TXT check failed: " + (data.error || "Unknown error")
+        VerificationMethod.DNS_TXT,
+        "DNS TXT check failed: " + (data?.error || "Unknown error")
       );
       return false;
     }
@@ -49,7 +55,8 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       console.log("DNS TXT verification successful");
       await updateDomainVerificationStatus(
         domain.id, 
-        VerificationStatus.VERIFIED
+        VerificationStatus.VERIFIED,
+        VerificationMethod.DNS_TXT
       );
       return true;
     } else {
@@ -57,7 +64,7 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       await updateDomainVerificationStatus(
         domain.id, 
         VerificationStatus.FAILED,
-        undefined,
+        VerificationMethod.DNS_TXT,
         "TXT record not found or does not match expected value"
       );
       return false;
@@ -67,7 +74,7 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
     await updateDomainVerificationStatus(
       domain.id, 
       VerificationStatus.FAILED,
-      undefined,
+      VerificationMethod.DNS_TXT,
       "Exception during verification: " + (error instanceof Error ? error.message : String(error))
     );
     return false;

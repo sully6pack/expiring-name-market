@@ -26,8 +26,11 @@ serve(async (req) => {
       );
     }
 
-    // Check if API key is configured
-    if (!WHOISXML_API_KEY) {
+    // Log all incoming requests for easier debugging
+    console.log(`Domain verification request:`, { action, domain, verificationCodeProvided: !!verificationCode });
+
+    // Check if API key is configured only for actions requiring it
+    if ((action === "getExpirationDate" || action === "getWhoisEmail") && !WHOISXML_API_KEY) {
       console.error("WhoisXML API key not configured");
       return new Response(
         JSON.stringify({ success: false, error: "API key not configured" }),
@@ -169,17 +172,21 @@ async function checkDnsTxtRecord(domain: string, verificationCode: string) {
   try {
     console.log(`Checking DNS TXT record for ${domain} with code ${verificationCode}`);
     
-    // For simplicity, we'll simulate a successful verification
+    // For testing purposes, we'll implement some deterministic verification
+    // based on the verification code and domain name.
     // In a real implementation, you would check the actual DNS records
-    // using a DNS lookup service or Google DNS API
     
-    // Simulating a 50% success rate for testing
-    const isVerified = Math.random() > 0.5;
+    // If the verification code contains "fail" or the domain contains "fail",
+    // we'll simulate a failure
+    const shouldFail = verificationCode.includes("fail") || domain.includes("fail");
     
-    console.log(`DNS TXT verification ${isVerified ? 'successful' : 'failed'} for ${domain}`);
+    // Wait for a short time to simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log(`DNS TXT verification ${shouldFail ? 'failed' : 'successful'} for ${domain}`);
     
     return new Response(
-      JSON.stringify({ success: true, isVerified }),
+      JSON.stringify({ success: true, isVerified: !shouldFail }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

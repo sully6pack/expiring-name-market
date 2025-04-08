@@ -1,21 +1,36 @@
 
-// Export domain verification related functions
-export { fetchDomainExpirationDate, getWhoisEmail } from './verificationUtils';
+// Import domain verification utility functions
+import { fetchDomainExpirationDate, getWhoisEmail } from './verificationUtils';
 
-// Export verification helpers
-export { 
+// Import verification helpers
+import { 
   generateVerificationCode,
   getVerificationInstructions,
   simulateVerificationTimeout 
 } from './verificationHelpers';
 
-// Export domain verification functions
-export { verifyDomainWithCode } from './emailVerification';
-export { checkDnsTxtVerification } from './dnsVerification';
-export { startEmailVerification } from './emailVerification';
+// Import verification methods
+import { checkDnsTxtVerification } from './dnsVerification';
+import { verifyDomainWithCode, startEmailVerification } from './emailVerification';
 
-// Import the fetchDomainExpirationDate function to use it locally
-import { fetchDomainExpirationDate } from './verificationUtils';
+// Export all verification functions and utilities
+export { 
+  // Verification utilities
+  fetchDomainExpirationDate, 
+  getWhoisEmail,
+  
+  // Verification helpers
+  generateVerificationCode,
+  getVerificationInstructions,
+  simulateVerificationTimeout,
+  
+  // DNS verification
+  checkDnsTxtVerification,
+  
+  // Email verification
+  startEmailVerification,
+  verifyDomainWithCode 
+};
 
 // Simple function to check domain verification
 export const verifyDomain = async (domain: string): Promise<boolean> => {

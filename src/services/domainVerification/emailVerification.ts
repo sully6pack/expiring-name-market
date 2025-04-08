@@ -3,6 +3,7 @@ import { Domain, VerificationStatus, VerificationMethod } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { updateDomainVerificationStatus } from "@/services/supaDomainService";
 import { getWhoisEmail } from "./verificationUtils";
+import { sendDomainVerificationEmail } from "@/services/supaEmailService";
 
 // Start email verification process
 export const startEmailVerification = async (domain: Domain, userEmail?: string): Promise<boolean> => {
@@ -36,16 +37,51 @@ export const startEmailVerification = async (domain: Domain, userEmail?: string)
     }
     
     const emailToUse = whoisEmail || userEmail;
-    
     console.log(`Sending verification email to: ${emailToUse}`);
     
-    // In a real implementation, you would send an actual email here
-    // For now, we'll simulate success
+    if (!emailToUse) {
+      console.error("Could not determine email address for verification");
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.FAILED,
+        VerificationMethod.WHOIS_EMAIL,
+        "Could not determine email address for verification"
+      );
+      return false;
+    }
     
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Create verification URL with domain ID and code
+    const verificationUrl = `${window.location.origin}/verify-domain/${domain.id}?code=${domain.verificationCode}`;
+    
+    // Send verification email
+    const emailSent = await sendDomainVerificationEmail(
+      emailToUse,
+      domain.name,
+      domain.verificationCode,
+      verificationUrl
+    );
+    
+    if (!emailSent) {
+      console.error("Failed to send verification email");
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.FAILED,
+        VerificationMethod.WHOIS_EMAIL,
+        "Failed to send verification email"
+      );
+      return false;
+    }
     
     console.log("Email verification initiated successfully");
+    
+    // Update domain status to pending
+    await updateDomainVerificationStatus(
+      domain.id,
+      VerificationStatus.PENDING,
+      VerificationMethod.WHOIS_EMAIL,
+      "Verification email sent. Waiting for verification."
+    );
+    
     return true;
     
   } catch (error) {
@@ -73,7 +109,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       .single();
     
     if (error || !domainData) {
-      console.error("Error fetching domain for verification:", error);
+      console.error("Error fetching domain for verification:", error || "Domain not found");
       return false;
     }
     
@@ -99,7 +135,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       );
       return true;
     } else {
-      console.log("Verification code did not match");
+      console.log(`Verification code did not match. Expected: ${verificationCode}, Got: ${code}`);
       await updateDomainVerificationStatus(
         domainId, 
         VerificationStatus.FAILED,
