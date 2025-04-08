@@ -1,7 +1,8 @@
+
 import { Domain, DomainCategory, User, VerificationStatus } from "@/types";
 import { getCurrentUser, isAdmin } from "./supabaseAuthService";
 import { getAllDomains, updateDomain, deleteDomain } from "./domainService";
-import { fetchDomainExpirationDate } from "./domainVerificationService";
+import { fetchDomainExpirationDate } from "./domainVerification";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
