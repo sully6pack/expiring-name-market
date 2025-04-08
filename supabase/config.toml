@@ -3,4 +3,3 @@ project_id = "ktldlcyglwcqjqkaxelk"
 
 [functions.domain-verification]
 verify_jwt = false
-

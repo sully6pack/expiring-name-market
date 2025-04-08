@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,25 +27,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error || !data) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-
-      return {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        isAdmin: data.is_admin || false,
-        isVerified: true,
-        createdAt: new Date(data.created_at),
+      // Since we don't have a users table in the database yet, we'll create a simplified AppUser
+      // from the Auth user data directly
+      const appUser: AppUser = {
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        isAdmin: user.email === 'admin@notrenewing.com', // Simple admin check
+        isVerified: !!user.email_confirmed_at,
+        createdAt: new Date(user.created_at || Date.now()),
       };
+      
+      return appUser;
     } catch (error) {
       console.error('Error in convertToAppUser:', error);
       return null;
@@ -55,25 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Create a user profile in our database
   const createUserProfile = async (userId: string, email: string, name: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase.from('users').insert({
-        id: userId,
-        email,
-        name,
-        is_admin: false,
-        created_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error('Error creating user profile:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in createUserProfile:', error);
-      return false;
-    }
+    // Since we don't have a users table yet, we'll skip this step
+    // In a real implementation, you would create a SQL migration to add a users table
+    console.log('Note: User profile creation skipped - no users table exists yet');
+    return true;
   };
 
   // Refresh the user data
