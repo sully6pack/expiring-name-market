@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Domain, VerificationMethod, VerificationStatus, DomainCategory } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,19 +37,15 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
   
   const user = getCurrentUser();
   
-  // Poll for updates if verification is pending
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
     
     if (domain.verificationStatus === VerificationStatus.PENDING) {
-      // Set the start time if it's not already set
       if (!verificationStartTime) {
         setVerificationStartTime(new Date());
       }
       
-      // Poll every 1 second for updates (reduced from 3s to be more responsive)
       intervalId = setInterval(async () => {
-        // Get the latest domain data from Supabase
         try {
           const { data: updatedDomainData, error } = await supabase
             .from('domains')
@@ -68,7 +63,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             return;
           }
           
-          // Ensure category is a valid DomainCategory type
           let domainCategory: DomainCategory;
           if (Object.values(DomainCategory).includes(updatedDomainData.category as DomainCategory)) {
             domainCategory = updatedDomainData.category as DomainCategory;
@@ -76,7 +70,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             domainCategory = DomainCategory.Other;
           }
           
-          // Handle the verification status
           let verificationStatus: VerificationStatus;
           if (Object.values(VerificationStatus).includes(updatedDomainData.verification_status as VerificationStatus)) {
             verificationStatus = updatedDomainData.verification_status as VerificationStatus;
@@ -84,7 +77,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             verificationStatus = VerificationStatus.NOT_STARTED;
           }
           
-          // Handle verification method
           let verificationMethod: VerificationMethod | undefined;
           if (updatedDomainData.verification_method && 
               Object.values(VerificationMethod).includes(updatedDomainData.verification_method as VerificationMethod)) {
@@ -110,13 +102,10 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             verificationCode: updatedDomainData.verification_code,
             verificationDate: updatedDomainData.verification_date ? new Date(updatedDomainData.verification_date) : undefined,
             verificationNotes: updatedDomainData.verification_notes,
-            isVerified: updatedDomainData.is_verified,
-            buyerId: updatedDomainData.buyer_id,
-            purchaseDate: updatedDomainData.purchase_date ? new Date(updatedDomainData.purchase_date) : undefined
+            isVerified: updatedDomainData.is_verified
           };
           
           if (updatedDomain.verificationStatus !== VerificationStatus.PENDING) {
-            // Verification has completed (either success or failure)
             clearInterval(intervalId);
             setIsVerifying(false);
             
@@ -124,7 +113,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
               onVerificationUpdate(updatedDomain);
             }
             
-            // Show toast based on verification result
             if (updatedDomain.verificationStatus === VerificationStatus.VERIFIED) {
               toast({
                 title: "Verification Successful",
@@ -143,16 +131,13 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
           console.error("Error in polling interval:", err);
         }
         
-        // Check if verification has been running too long (over 15 seconds)
         const now = new Date();
         const elapsedTimeMs = verificationStartTime ? now.getTime() - verificationStartTime.getTime() : 0;
         
         if (elapsedTimeMs > 15000) {
-          // It's been too long, cancel the interval
           clearInterval(intervalId);
           setIsVerifying(false);
           
-          // Update domain status to failed due to timeout
           const timeoutDomain: Domain = {
             ...domain,
             verificationStatus: VerificationStatus.FAILED,
@@ -175,7 +160,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
       }, 1000);
     }
     
-    // Cleanup interval on unmount
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
@@ -226,12 +210,10 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     const method = value as VerificationMethod;
     setSelectedMethod(method);
     
-    // Generate new instructions based on selected method
     const newInstructions = getVerificationInstructions(domain, method);
     setInstructions(newInstructions);
     console.log("Updated verification method to:", method, "with instructions:", newInstructions);
     
-    // Update domain with the new method and generate a new verification code
     const verificationCode = generateVerificationCode();
     console.log("Generated new verification code:", verificationCode);
     
@@ -241,7 +223,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
       verificationCode: verificationCode
     };
     
-    // Update the domain in Supabase
     supabase
       .from('domains')
       .update({
@@ -275,14 +256,12 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     try {
       console.log("Starting verification process with method:", selectedMethod);
       
-      // Set domain to pending status
       const pendingDomain: Domain = {
         ...domain,
         verificationStatus: VerificationStatus.PENDING,
         verificationMethod: selectedMethod
       };
       
-      // Update in Supabase
       const { error } = await supabase
         .from('domains')
         .update({
@@ -299,7 +278,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         onVerificationUpdate(pendingDomain);
       }
       
-      // Show toast that verification has started
       toast({
         title: "Verification Started",
         description: "We're now verifying your domain ownership. This may take a few moments.",
@@ -313,13 +291,11 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         await startEmailVerification(pendingDomain, user.email);
       } else if (selectedMethod === VerificationMethod.DNS_CNAME) {
         console.log("Starting CNAME verification for domain:", domain.name);
-        // Implement CNAME verification here
         toast({
           title: "Verification Method",
           description: "CNAME verification requested. Please add the CNAME record as instructed.",
         });
         
-        // Update domain with status explaining CNAME verification
         const pendingCnameDomain: Domain = {
           ...domain,
           verificationStatus: VerificationStatus.PENDING,
@@ -344,7 +320,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
       console.error("Verification error:", error);
       setIsVerifying(false);
       
-      // Update domain status to failed due to error
       const errorDomain: Domain = {
         ...domain,
         verificationStatus: VerificationStatus.FAILED,
@@ -365,7 +340,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
         onVerificationUpdate(errorDomain);
       }
       
-      // Show error toast
       toast({
         title: "Verification Error",
         description: "An error occurred during verification. Please try again.",
@@ -380,7 +354,6 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     isVerifying;
   
   const handleRetryVerification = () => {
-    // Reset verification status and let user try again
     const resetDomain: Domain = {
       ...domain,
       verificationStatus: VerificationStatus.NOT_STARTED,
