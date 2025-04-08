@@ -36,13 +36,16 @@ export {
 };
 
 // Function to check domain verification
-export const verifyDomain = async (domain: string): Promise<boolean> => {
+export const verifyDomain = async (domain: string): Promise<{isValid: boolean, reason?: string, source?: string} | null> => {
   try {
     // For demo purposes, we'll do a simple validation first
     const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
     if (!domainRegex.test(domain)) {
       console.error(`Invalid domain format: ${domain}`);
-      return false;
+      return {
+        isValid: false,
+        reason: "invalid_format"
+      };
     }
     
     console.log(`Verifying domain: ${domain}`);
@@ -57,17 +60,22 @@ export const verifyDomain = async (domain: string): Promise<boolean> => {
     
     if (error) {
       console.error("Error verifying domain:", error);
-      return false;
+      return null;
     }
     
     if (!data.success) {
       console.error("Error verifying domain:", data.error);
-      return false;
+      return null;
     }
     
-    return data.isValid;
+    // Return the full response including reason and source if available
+    return {
+      isValid: data.isValid,
+      reason: data.reason,
+      source: data.source
+    };
   } catch (error) {
     console.error("Error verifying domain:", error);
-    return false;
+    return null;
   }
 };

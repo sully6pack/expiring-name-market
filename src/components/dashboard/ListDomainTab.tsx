@@ -66,12 +66,36 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       console.log("Starting domain verification process for:", domainName);
       
       // First verify the domain exists
-      const isValid = await verifyDomain(domainName);
+      const result = await verifyDomain(domainName);
       
-      if (!isValid) {
+      // Log the full verification result for debugging
+      console.log("Domain verification complete:", result);
+      
+      if (!result || !result.isValid) {
         console.error("Domain verification failed for:", domainName);
+        let errorMessage = "Could not verify this domain.";
+        
+        if (result && result.reason) {
+          switch (result.reason) {
+            case "domain_not_found":
+              errorMessage = "This domain does not appear to be registered.";
+              break;
+            case "invalid_format":
+              errorMessage = "Invalid domain format. Please use format like 'example.com'.";
+              break;
+            case "unsupported_tld":
+              errorMessage = "Unsupported top-level domain. We support common TLDs like .com, .org, etc.";
+              break;
+            case "domain_too_short":
+              errorMessage = "Domain name is too short. It must be at least 3 characters.";
+              break;
+            default:
+              errorMessage = "Domain verification failed. Please try again.";
+          }
+        }
+        
         setVerificationStatus("error");
-        setVerificationMessage("Could not verify this domain. The domain may not exist or be registered.");
+        setVerificationMessage(errorMessage);
         return false;
       }
       
