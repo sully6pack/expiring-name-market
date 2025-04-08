@@ -2,10 +2,17 @@
 // Export domain verification related functions
 export { fetchDomainExpirationDate, getWhoisEmail } from './verificationUtils';
 
-// Export simplified verification helpers
-export const generateVerificationCode = (): string => {
-  return `verify-${Math.random().toString(36).substring(2, 8)}`;
-};
+// Export verification helpers
+export { 
+  generateVerificationCode,
+  getVerificationInstructions,
+  simulateVerificationTimeout 
+} from './verificationHelpers';
+
+// Export domain verification functions
+export { verifyDomainWithCode } from './emailVerification';
+export { checkDnsTxtVerification } from './dnsVerification';
+export { startEmailVerification } from './emailVerification';
 
 // Simple function to check domain verification
 export const verifyDomain = async (domain: string): Promise<boolean> => {
