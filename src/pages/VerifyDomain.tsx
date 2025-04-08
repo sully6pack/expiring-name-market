@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { verifyDomainWithCode } from "@/services/domainVerificationService";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 const VerifyDomain = () => {
   const { domainId } = useParams();
@@ -19,7 +18,6 @@ const VerifyDomain = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If code is provided in URL, try to verify immediately
     const codeFromUrl = searchParams.get("code");
     if (domainId && codeFromUrl) {
       handleVerification(codeFromUrl);

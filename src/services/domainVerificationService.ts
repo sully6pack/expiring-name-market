@@ -237,6 +237,8 @@ export const startEmailVerification = async (domain: Domain, ownerEmail?: string
 // Verify domain via verification code (email flow)
 export const verifyDomainWithCode = async (domainId: string, code: string): Promise<boolean> => {
   try {
+    console.log(`Verifying domain ID: ${domainId} with code: ${code}`);
+    
     // Get domain from our service
     const domains = window.globalDomains || [];
     const domain = domains.find(d => d.id === domainId);
@@ -245,6 +247,8 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       console.error(`Domain not found with ID: ${domainId}`);
       return false;
     }
+    
+    console.log(`Domain found: ${domain.name}, verification code: ${domain.verificationCode}, input code: ${code}`);
     
     if (domain.verificationCode !== code) {
       console.error("Verification code doesn't match");
@@ -264,7 +268,25 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       ...(expirationDate && { expirationDate })
     };
     
-    return updateDomain(updatedDomain);
+    console.log(`Domain verified, updating status: ${JSON.stringify(updatedDomain)}`);
+    
+    const updated = updateDomain(updatedDomain);
+    
+    if (updated) {
+      // Update the global domains list to reflect the verification
+      window.globalDomains = window.globalDomains.map(d => 
+        d.id === domainId ? updatedDomain : d
+      );
+      
+      try {
+        localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+        console.log(`Domain verification status updated in localStorage for ${domain.name}`);
+      } catch (error) {
+        console.error('Error saving domains to localStorage:', error);
+      }
+    }
+    
+    return updated;
   } catch (error) {
     console.error("Error verifying domain with code:", error);
     return false;

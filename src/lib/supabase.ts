@@ -225,6 +225,12 @@ export const updateDomainVerification = async (
     is_verified: boolean;
   }
 ): Promise<boolean> => {
+  if (supabaseUrl === 'https://your-project-url.supabase.co' || 
+      supabaseAnonKey === 'your-anon-key') {
+    console.log('Using mock verification in development mode');
+    return true;
+  }
+  
   try {
     const { error } = await supabase
       .from('domains')
