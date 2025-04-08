@@ -1,8 +1,7 @@
-
 import { Domain, VerificationStatus } from "@/types";
 import { updateDomain } from "../domainService";
 import { getWhoisEmail } from "./verificationUtils";
-import { sendVerificationEmail } from "../emailService";
+import { sendDomainVerificationEmail } from "../emailService";
 import { supabase } from "@/lib/supabase";
 
 // Start email verification process
@@ -27,23 +26,19 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
       return false;
     }
     
+    // Generate verification URL
+    const verificationUrl = `${window.location.origin}/verify-domain/${domain.id}?code=${domain.verificationCode}`;
+    
     // Send the verification email
-    const { data, error } = await supabase.functions.invoke('domain-verification', {
-      body: {
-        action: 'sendVerificationEmail',
-        domain: domain.name,
-        email: targetEmail,
-        verificationCode: domain.verificationCode
-      }
-    });
+    const emailSent = await sendDomainVerificationEmail(
+      targetEmail,
+      domain.name,
+      domain.verificationCode,
+      verificationUrl
+    );
     
-    if (error) {
-      console.error('Error sending verification email:', error);
-      return false;
-    }
-    
-    if (!data.success) {
-      console.error('Failed to send verification email:', data.error);
+    if (!emailSent) {
+      console.error("Failed to send verification email");
       return false;
     }
     
