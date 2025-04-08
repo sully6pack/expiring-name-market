@@ -1,74 +1,47 @@
 
 import { Domain, VerificationMethod } from "@/types";
 
-// Generate a random verification code
+// Generate a random verification code for domain verification
 export const generateVerificationCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return `verify-${Math.random().toString(36).substring(2, 10)}`;
 };
 
-// Get verification instructions based on the domain and method
+// Simulating a verification timeout for testing purposes
+export const simulateVerificationTimeout = async (timeout: number = 5000): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+};
+
+// Get verification instructions based on domain and method
 export const getVerificationInstructions = (domain: Domain, method: VerificationMethod): string => {
-  const verificationCode = domain.verificationCode || generateVerificationCode();
+  const code = domain.verificationCode || generateVerificationCode();
   
   switch (method) {
-    case VerificationMethod.DNS_TXT:
-      return `1. Log in to your domain registrar account (e.g., GoDaddy, Namecheap).
-      
-2. Navigate to the DNS management section for ${domain.name}.
+    case 'DNS_TXT':
+      return `To verify ownership of ${domain.name}, please add the following TXT record to your domain's DNS settings:
 
-3. Add a new TXT record with these values:
-   - Host/Name: @ (or leave blank, depending on your registrar)
-   - Value/Content: ${verificationCode}
-   - TTL: 3600 (or 1 hour, if available)
+Name: @ or ${domain.name}
+Type: TXT
+Value: ${code}
 
-4. Save the changes.
+After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
 
-5. Click "Start Verification" below to verify your domain ownership.
+    case 'DNS_CNAME':
+      return `To verify ownership of ${domain.name}, please add the following CNAME record to your domain's DNS settings:
 
-NOTE: DNS changes may take up to 24-48 hours to fully propagate, but we'll check immediately and continue trying for verification.`;
+Name: verify
+Type: CNAME
+Value: verification.domainmarket.com
 
-    case VerificationMethod.DNS_CNAME:
-      return `1. Log in to your domain registrar account (e.g., GoDaddy, Namecheap).
-      
-2. Navigate to the DNS management section for ${domain.name}.
+After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
 
-3. Add a new CNAME record with these values:
-   - Host/Name: verify (this will create verify.${domain.name})
-   - Value/Points to: ${verificationCode}.verify.domainsell.io
-   - TTL: 3600 (or 1 hour, if available)
+    case 'WHOIS_EMAIL':
+      return `We'll send a verification code to the email address listed in your domain's WHOIS record. 
 
-4. Save the changes.
+Please ensure you have access to this email, then click "Start Verification" below to receive the code.
 
-5. Click "Start Verification" below to verify your domain ownership.
-
-NOTE: DNS changes may take up to 24-48 hours to fully propagate, but we'll check immediately.`;
-
-    case VerificationMethod.WHOIS_EMAIL:
-      return `1. We'll send a verification email to the address listed in your domain's WHOIS records.
-      
-2. If your WHOIS information is private or protected, you may need to either:
-   - Temporarily disable WHOIS privacy protection, or
-   - Forward the verification email from your privacy service email to your actual email
-
-3. Check your email (including spam folder) for a message from domainsell.io with a verification link or code.
-
-4. Click the verification link in the email or enter the code on this page to verify ownership.
-
-5. Click "Start Verification" below to initiate the email verification process.`;
+Note: If your WHOIS information is private or protected, you may need to use a different verification method.`;
 
     default:
-      return "Please select a verification method to see instructions.";
+      return `Please select a verification method to see specific instructions.`;
   }
-};
-
-// Simulate a verification timeout for testing purposes
-export const simulateVerificationTimeout = async (domainId: string): Promise<void> => {
-  // This function is for development/testing only
-  console.log(`[DEV] Simulating verification timeout for domain ${domainId}`);
-  return new Promise(resolve => setTimeout(resolve, 15000));
 };

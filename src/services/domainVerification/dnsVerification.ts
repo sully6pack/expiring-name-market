@@ -1,20 +1,18 @@
 
 import { Domain, VerificationStatus } from "@/types";
-import { updateDomain } from "../domainService";
-import { sendVerificationSuccessEmail, sendVerificationFailureEmail } from "../emailService";
 import { supabase } from "@/lib/supabase";
-import { fetchDomainExpirationDate } from "./verificationUtils";
+import { updateDomainVerificationStatus } from "@/services/supaDomainService";
 
-// Check DNS TXT record verification using Google DNS API
+// Verify domain using DNS TXT record
 export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> => {
   if (!domain.verificationCode) {
-    console.error("No verification code found for domain");
+    console.error("Missing verification code for DNS TXT check");
     return false;
   }
 
-  console.log(`[VERIFICATION] Checking DNS TXT record for ${domain.name}`);
-  
   try {
+    console.log(`Checking DNS TXT verification for domain: ${domain.name}`);
+    
     const { data, error } = await supabase.functions.invoke('domain-verification', {
       body: {
         action: 'checkDnsTxtRecord',
@@ -22,83 +20,56 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
         verificationCode: domain.verificationCode
       }
     });
-
+    
     if (error) {
-      console.error('Error invoking domain-verification function:', error);
-      
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "Error checking DNS TXT record. Please try again later."
-      };
-      
-      updateDomain(updatedDomain);
-      sendVerificationFailureEmail(domain.sellerId, domain.name, "Error checking DNS TXT record");
+      console.error("Error invoking DNS TXT check:", error);
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.FAILED,
+        undefined,
+        "Error checking DNS TXT record: " + error.message
+      );
       return false;
     }
-
+    
     if (!data.success) {
-      console.error('Error checking DNS TXT record:', data.error);
-      
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "Error checking DNS TXT record. Please try again later."
-      };
-      
-      updateDomain(updatedDomain);
-      sendVerificationFailureEmail(domain.sellerId, domain.name, "Error checking DNS TXT record");
+      console.error("DNS TXT check returned error:", data.error);
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.FAILED,
+        undefined,
+        "DNS TXT check failed: " + (data.error || "Unknown error")
+      );
       return false;
     }
-
-    const isVerified = data.isVerified;
-    console.log(`[VERIFICATION] DNS verification ${isVerified ? 'passed' : 'failed'} for ${domain.name}`);
+    
+    const isVerified = data.isVerified === true;
     
     if (isVerified) {
-      // Fetch domain expiration date
-      const expirationDate = await fetchDomainExpirationDate(domain.name);
-      
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.VERIFIED,
-        verificationDate: new Date(),
-        isVerified: true,
-        // Update expiration date if we found one
-        ...(expirationDate && { expirationDate })
-      };
-      
-      const updated = updateDomain(updatedDomain);
-      if (updated) {
-        sendVerificationSuccessEmail(domain.sellerId, domain.name);
-      }
+      console.log("DNS TXT verification successful");
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.VERIFIED
+      );
       return true;
     } else {
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "DNS TXT record verification failed. Please ensure you've added the TXT record correctly."
-      };
-      
-      const updated = updateDomain(updatedDomain);
-      if (updated) {
-        sendVerificationFailureEmail(domain.sellerId, domain.name, "DNS TXT record verification failed");
-      }
+      console.log("DNS TXT verification failed, TXT record not found or incorrect");
+      await updateDomainVerificationStatus(
+        domain.id, 
+        VerificationStatus.FAILED,
+        undefined,
+        "TXT record not found or does not match expected value"
+      );
       return false;
     }
   } catch (error) {
-    console.error('Error in checkDnsTxtVerification:', error);
-    
-    const updatedDomain: Domain = {
-      ...domain,
-      verificationStatus: VerificationStatus.FAILED,
-      verificationDate: new Date(),
-      verificationNotes: "Error checking DNS TXT record. Please try again later."
-    };
-    
-    updateDomain(updatedDomain);
+    console.error("Exception during DNS TXT verification:", error);
+    await updateDomainVerificationStatus(
+      domain.id, 
+      VerificationStatus.FAILED,
+      undefined,
+      "Exception during verification: " + (error instanceof Error ? error.message : String(error))
+    );
     return false;
   }
 };

@@ -14,6 +14,9 @@ export { verifyDomainWithCode } from './emailVerification';
 export { checkDnsTxtVerification } from './dnsVerification';
 export { startEmailVerification } from './emailVerification';
 
+// Import the fetchDomainExpirationDate function to use it locally
+import { fetchDomainExpirationDate } from './verificationUtils';
+
 // Simple function to check domain verification
 export const verifyDomain = async (domain: string): Promise<boolean> => {
   try {
