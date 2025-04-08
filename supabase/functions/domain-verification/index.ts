@@ -35,6 +35,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Processing ${action} request for domain: ${domain}`);
+
     // Handle different actions
     switch (action) {
       case "getExpirationDate":
@@ -77,9 +79,18 @@ async function getExpirationDate(domain: string) {
   try {
     console.log(`Fetching expiration date for ${domain}`);
     
+    if (!WHOISXML_API_KEY) {
+      throw new Error("WhoisXML API key not configured");
+    }
+    
     const url = `https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${WHOISXML_API_KEY}&domainName=${domain}&outputFormat=JSON`;
     
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`WhoisXML API returned ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
     
     console.log(`Received WhoisXML response for ${domain}`);
@@ -129,9 +140,14 @@ async function checkDnsTxtRecord(domain: string, verificationCode: string) {
     const url = `https://dns.google/resolve?name=${domain}&type=TXT`;
     
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`DNS API returned ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
     
-    console.log(`Received DNS response for ${domain}`);
+    console.log(`Received DNS response for ${domain}:`, JSON.stringify(data));
     
     let isVerified = false;
     
@@ -148,6 +164,8 @@ async function checkDnsTxtRecord(domain: string, verificationCode: string) {
           break;
         }
       }
+    } else {
+      console.log(`No TXT records found for ${domain}`);
     }
     
     return new Response(
@@ -168,9 +186,18 @@ async function getWhoisEmail(domain: string) {
   try {
     console.log(`Fetching WHOIS email for ${domain}`);
     
+    if (!WHOISXML_API_KEY) {
+      throw new Error("WhoisXML API key not configured");
+    }
+    
     const url = `https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${WHOISXML_API_KEY}&domainName=${domain}&outputFormat=JSON`;
     
     const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`WhoisXML API returned ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
     
     console.log(`Received WhoisXML response for ${domain}`);
@@ -203,7 +230,7 @@ async function sendVerificationEmail(domain: string, email: string, verification
     
     // In a real implementation, this would send an actual email
     // For now, we'll simulate it being sent successfully
-    const verificationUrl = `https://yourapp.com/verify-domain/${domain}?code=${verificationCode}`;
+    const verificationUrl = `https://your-app.com/verify-domain/${domain}?code=${verificationCode}`;
     
     console.log(`Verification URL would be: ${verificationUrl}`);
     console.log(`Email would be sent to: ${email}`);

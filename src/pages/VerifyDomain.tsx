@@ -6,7 +6,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const VerifyDomain = () => {
   const { domainId } = useParams();
@@ -14,12 +15,41 @@ const VerifyDomain = () => {
   const [verificationResult, setVerificationResult] = useState<"success" | "failure" | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [code, setCode] = useState(searchParams.get("code") || "");
+  const [domainName, setDomainName] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Fetch domain name when component loads
+  useEffect(() => {
+    const fetchDomainDetails = async () => {
+      if (!domainId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('domains')
+          .select('name')
+          .eq('id', domainId)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching domain details:", error);
+          return;
+        }
+        
+        if (data) {
+          setDomainName(data.name);
+        }
+      } catch (err) {
+        console.error("Failed to fetch domain details:", err);
+      }
+    };
+    
+    fetchDomainDetails();
+  }, [domainId]);
+
   useEffect(() => {
     const codeFromUrl = searchParams.get("code");
-    if (domainId && codeFromUrl) {
+    if (domainId && codeFromUrl && codeFromUrl.length >= 8) {
       console.log("Auto-verifying domain with code from URL", domainId, codeFromUrl);
       handleVerification(codeFromUrl);
     }
@@ -81,6 +111,12 @@ const VerifyDomain = () => {
           <CardTitle className="text-center">Domain Verification</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {domainName && (
+            <p className="text-center text-gray-500">
+              Verifying domain: <span className="font-medium">{domainName}</span>
+            </p>
+          )}
+          
           {verificationResult === "success" ? (
             <div className="text-center space-y-4">
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
@@ -115,25 +151,37 @@ const VerifyDomain = () => {
             </div>
           ) : (
             <>
-              <p className="text-center text-gray-600">
-                Please enter the verification code that was sent to your email address.
-              </p>
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Verification Code</p>
-                <InputOTP 
-                  maxLength={8} 
-                  value={code} 
-                  onChange={setCode}
-                  disabled={isVerifying}
-                >
-                  <InputOTPGroup>
-                    {Array.from({ length: 8 }).map((_, index) => (
-                      <InputOTPSlot key={index} index={index} />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
+              {isVerifying ? (
+                <div className="text-center space-y-4">
+                  <Loader2 className="h-16 w-16 text-blue-500 mx-auto animate-spin" />
+                  <h2 className="text-xl font-semibold">Verifying...</h2>
+                  <p className="text-gray-600">
+                    Please wait while we verify your domain.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-center text-gray-600">
+                    Please enter the verification code that was sent to your email address.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Verification Code</p>
+                    <InputOTP 
+                      maxLength={8} 
+                      value={code} 
+                      onChange={setCode}
+                      disabled={isVerifying}
+                    >
+                      <InputOTPGroup>
+                        {Array.from({ length: 8 }).map((_, index) => (
+                          <InputOTPSlot key={index} index={index} />
+                        ))}
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                </>
+              )}
             </>
           )}
         </CardContent>
