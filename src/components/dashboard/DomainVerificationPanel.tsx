@@ -9,15 +9,15 @@ import {
   getVerificationInstructions, 
   checkDnsTxtVerification, 
   startEmailVerification, 
-  simulateVerificationTimeout 
-} from "@/services/domainVerificationService";
+  simulateVerificationTimeout,
+  generateVerificationCode
+} from "@/services/domainVerification";
 import { getCurrentUser } from "@/services/authService";
 import { updateDomain } from "@/services/domainService";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { generateVerificationCode } from "@/services/domainVerificationService";
 
 interface DomainVerificationPanelProps {
   domain: Domain;
