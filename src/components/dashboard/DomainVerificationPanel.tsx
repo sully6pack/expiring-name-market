@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Domain, VerificationMethod, VerificationStatus } from "@/types";
+import { Domain, VerificationMethod, VerificationStatus, DomainCategory } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { convertDbDomainToDomain } from "@/lib/supabase";
 import { generateVerificationCode } from "@/services/domainVerificationService";
 
 interface DomainVerificationPanelProps {
@@ -68,7 +68,52 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
             return;
           }
           
-          const updatedDomain = convertDbDomainToDomain(updatedDomainData);
+          // Ensure category is a valid DomainCategory type
+          let domainCategory: DomainCategory;
+          if (Object.values(DomainCategory).includes(updatedDomainData.category as DomainCategory)) {
+            domainCategory = updatedDomainData.category as DomainCategory;
+          } else {
+            domainCategory = DomainCategory.Other;
+          }
+          
+          // Handle the verification status
+          let verificationStatus: VerificationStatus;
+          if (Object.values(VerificationStatus).includes(updatedDomainData.verification_status as VerificationStatus)) {
+            verificationStatus = updatedDomainData.verification_status as VerificationStatus;
+          } else {
+            verificationStatus = VerificationStatus.NOT_STARTED;
+          }
+          
+          // Handle verification method
+          let verificationMethod: VerificationMethod | undefined;
+          if (updatedDomainData.verification_method && 
+              Object.values(VerificationMethod).includes(updatedDomainData.verification_method as VerificationMethod)) {
+            verificationMethod = updatedDomainData.verification_method as VerificationMethod;
+          }
+          
+          const updatedDomain: Domain = {
+            id: updatedDomainData.id,
+            name: updatedDomainData.name,
+            description: updatedDomainData.description,
+            expirationDate: new Date(updatedDomainData.expiration_date),
+            sellerId: updatedDomainData.seller_id,
+            sellerName: updatedDomainData.seller_name,
+            likes: updatedDomainData.likes,
+            price: updatedDomainData.price,
+            isSponsored: updatedDomainData.is_sponsored,
+            isAdminPick: updatedDomainData.is_admin_pick,
+            createdAt: new Date(updatedDomainData.created_at),
+            category: domainCategory,
+            tld: updatedDomainData.tld,
+            verificationStatus: verificationStatus,
+            verificationMethod: verificationMethod,
+            verificationCode: updatedDomainData.verification_code,
+            verificationDate: updatedDomainData.verification_date ? new Date(updatedDomainData.verification_date) : undefined,
+            verificationNotes: updatedDomainData.verification_notes,
+            isVerified: updatedDomainData.is_verified,
+            buyerId: updatedDomainData.buyer_id,
+            purchaseDate: updatedDomainData.purchase_date ? new Date(updatedDomainData.purchase_date) : undefined
+          };
           
           if (updatedDomain.verificationStatus !== VerificationStatus.PENDING) {
             // Verification has completed (either success or failure)
@@ -197,7 +242,7 @@ const DomainVerificationPanel = ({ domain, onVerificationUpdate }: DomainVerific
     };
     
     // Update the domain in Supabase
-    const { error } = supabase
+    supabase
       .from('domains')
       .update({
         verification_method: method,

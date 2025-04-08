@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { verifyDomainWithCode } from "@/services/domainVerificationService";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
 const VerifyDomain = () => {
   const { domainId } = useParams();
