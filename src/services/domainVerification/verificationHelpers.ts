@@ -1,47 +1,51 @@
 
 import { Domain, VerificationMethod } from "@/types";
 
-// Generate a random verification code for domain verification
+// Generate a verification code for domain verification
 export const generateVerificationCode = (): string => {
   return `verify-${Math.random().toString(36).substring(2, 10)}`;
 };
 
-// Simulating a verification timeout for testing purposes
-export const simulateVerificationTimeout = async (timeout: number = 5000): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, timeout));
+// Simulate verification timeout (for demo purposes)
+export const simulateVerificationTimeout = async (): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, 10000));
 };
 
 // Get verification instructions based on domain and method
 export const getVerificationInstructions = (domain: Domain, method: VerificationMethod): string => {
-  const code = domain.verificationCode || generateVerificationCode();
-  
-  switch (method) {
-    case VerificationMethod.DNS_TXT:
-      return `To verify ownership of ${domain.name}, please add the following TXT record to your domain's DNS settings:
+  const verificationCode = domain.verificationCode || generateVerificationCode();
 
-Name: @ or ${domain.name}
-Type: TXT
-Value: ${code}
+  if (method === VerificationMethod.DNS_TXT) {
+    return `1. Log in to your domain registrar account.
+2. Navigate to the DNS management section.
+3. Add a new TXT record with the following values:
+   - Host/Name: @ or leave blank (root domain)
+   - Value/Data: ${verificationCode}
+   - TTL: Default or 3600
+4. Save the changes.
+5. Click "Start Verification" below.
 
-After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
+Note: DNS changes can take up to 48 hours to propagate, but usually take effect within 15 minutes.`;
+  } else if (method === VerificationMethod.DNS_CNAME) {
+    return `1. Log in to your domain registrar account.
+2. Navigate to the DNS management section.
+3. Add a new CNAME record with the following values:
+   - Host/Name: verify
+   - Value/Target: ${verificationCode}.verify.domainmarket.com
+   - TTL: Default or 3600
+4. Save the changes.
+5. Click "Start Verification" below.
 
-    case VerificationMethod.DNS_CNAME:
-      return `To verify ownership of ${domain.name}, please add the following CNAME record to your domain's DNS settings:
+Note: DNS changes can take up to 48 hours to propagate, but usually take effect within 15 minutes.`;
+  } else if (method === VerificationMethod.WHOIS_EMAIL) {
+    return `We will send a verification email to the address listed in your domain's WHOIS information. 
 
-Name: verify
-Type: CNAME
-Value: verification.domainmarket.com
+1. Make sure your WHOIS information is up to date.
+2. Check that email account for a verification message from us.
+3. Click the verification link in the email to confirm ownership.
 
-After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
-
-    case VerificationMethod.WHOIS_EMAIL:
-      return `We'll send a verification code to the email address listed in your domain's WHOIS record. 
-
-Please ensure you have access to this email, then click "Start Verification" below to receive the code.
-
-Note: If your WHOIS information is private or protected, you may need to use a different verification method.`;
-
-    default:
-      return `Please select a verification method to see specific instructions.`;
+Note: If your WHOIS privacy protection is enabled, please temporarily disable it or choose another verification method.`;
+  } else {
+    return "Please select a verification method to see instructions.";
   }
 };

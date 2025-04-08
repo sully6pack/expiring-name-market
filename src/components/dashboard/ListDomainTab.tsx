@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "verifying" | "success" | "error">("idle");
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [expirationSource, setExpirationSource] = useState<"user" | "whois" | null>(null);
   const { toast } = useToast();
 
   const validateDomain = async () => {
@@ -48,28 +49,42 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     setVerificationStatus("verifying");
     
     try {
+      console.log("Starting domain verification process for:", domainName);
+      
       // First verify the domain exists
       const isValid = await verifyDomain(domainName);
       
       if (!isValid) {
+        console.error("Domain verification failed for:", domainName);
         setVerificationStatus("error");
         setVerificationMessage("Could not verify this domain. Please check the domain name and try again.");
         return false;
       }
       
+      console.log("Domain verification successful for:", domainName);
+      
       // If domain exists, try to fetch its expiration date
       const domainExpirationDate = await fetchDomainExpirationDate(domainName);
       
       if (domainExpirationDate) {
+        console.log("Expiration date found:", domainExpirationDate);
         setExpirationDate(domainExpirationDate);
+        setExpirationSource("whois");
         toast({
           title: "Domain Verified",
           description: `Expiration date found: ${format(domainExpirationDate, "PP")}`,
         });
       } else {
+        console.log("No expiration date found, using default");
+        // Set a default expiration date 3 months from now
+        const defaultDate = new Date();
+        defaultDate.setMonth(defaultDate.getMonth() + 3);
+        setExpirationDate(defaultDate);
+        setExpirationSource("user");
+        
         toast({
           title: "Domain Verified",
-          description: "Domain exists but expiration date could not be determined.",
+          description: "Domain exists but expiration date could not be determined. A default date has been set.",
         });
       }
       
@@ -123,6 +138,12 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     setIsValidationError(false);
     setVerificationStatus("idle");
     setVerificationMessage("");
+    setExpirationSource(null);
+  };
+
+  const handleExpirationDateChange = (date: Date | undefined) => {
+    setExpirationDate(date);
+    setExpirationSource("user");
   };
 
   return (
@@ -156,6 +177,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
                   setDomainName(e.target.value);
                   if (verificationStatus !== "idle") {
                     setVerificationStatus("idle");
+                    setExpirationSource(null);
                   }
                 }}
                 required
@@ -225,7 +247,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="expiration-date">Expiration Date</Label>
-              {expirationDate && (
+              {expirationSource === "whois" && expirationDate && (
                 <div className="flex items-center">
                   <InfoIcon className="h-4 w-4 text-blue-500 mr-1" />
                   <span className="text-xs text-blue-500">Fetched from WHOIS data</span>
@@ -251,7 +273,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
                 <Calendar
                   mode="single"
                   selected={expirationDate}
-                  onSelect={setExpirationDate}
+                  onSelect={handleExpirationDateChange}
                   initialFocus
                 />
               </PopoverContent>

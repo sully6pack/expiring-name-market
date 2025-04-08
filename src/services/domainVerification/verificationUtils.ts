@@ -30,7 +30,7 @@ export const fetchDomainExpirationDate = async (domainName: string): Promise<Dat
     }
 
     if (data.expirationDate) {
-      console.log(`[VERIFICATION] Fetched expiration date: ${data.expirationDate}`);
+      console.log(`[VERIFICATION] Fetched expiration date: ${data.expirationDate} (source: ${data.source || 'unknown'})`);
       return new Date(data.expirationDate);
     }
     
@@ -61,6 +61,7 @@ export const getWhoisEmail = async (domain: string): Promise<string | null> => {
       return null;
     }
 
+    console.log(`[VERIFICATION] Fetched WHOIS email: ${data.email} (source: ${data.source || 'unknown'})`);
     return data.email;
   } catch (error) {
     console.error('Error in getWhoisEmail:', error);
