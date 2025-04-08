@@ -13,6 +13,9 @@ import {
 import { checkDnsTxtVerification } from './dnsVerification';
 import { verifyDomainWithCode, startEmailVerification } from './emailVerification';
 
+// Import Supabase client
+import { supabase } from "@/lib/supabase";
+
 // Export all verification functions and utilities
 export { 
   // Verification utilities
