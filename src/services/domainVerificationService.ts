@@ -3,93 +3,195 @@ import { Domain, VerificationMethod, VerificationStatus } from "@/types";
 import { isAdmin } from "./authService";
 import { sendEmail, sendVerificationSuccessEmail, sendVerificationFailureEmail } from "./emailService";
 import { updateDomain } from "./domainService";
+import { supabase } from "@/lib/supabase";
 
 // Generate a random verification code for DNS or email verification
 export const generateVerificationCode = (): string => {
   return `verify-${Math.random().toString(36).substring(2, 10)}`;
 };
 
-// Fetch domain expiration date
+// Fetch domain expiration date using WhoisXML API
 export const fetchDomainExpirationDate = async (domainName: string): Promise<Date | null> => {
   console.log(`[VERIFICATION] Fetching expiration date for ${domainName}`);
   
-  // In production, this would call a WHOIS API or DNS service
-  // For demo purposes, we'll simulate an API response with a random date
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Generate a random expiration date between 1 and 12 months from now
-      const today = new Date();
-      const monthsToAdd = Math.floor(Math.random() * 12) + 1;
-      const expirationDate = new Date(today);
-      expirationDate.setMonth(today.getMonth() + monthsToAdd);
-      
-      console.log(`[VERIFICATION] Fetched expiration date: ${expirationDate.toISOString()}`);
-      resolve(expirationDate);
-    }, 1500);
-  });
+  try {
+    const { data, error } = await supabase.functions.invoke('domain-verification', {
+      body: {
+        action: 'getExpirationDate',
+        domain: domainName
+      }
+    });
+
+    if (error) {
+      console.error('Error invoking domain-verification function:', error);
+      return null;
+    }
+
+    if (!data.success) {
+      console.error('Error fetching expiration date:', data.error);
+      return null;
+    }
+
+    if (data.expirationDate) {
+      console.log(`[VERIFICATION] Fetched expiration date: ${data.expirationDate}`);
+      return new Date(data.expirationDate);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error in fetchDomainExpirationDate:', error);
+    return null;
+  }
 };
 
-// Check DNS TXT record verification
+// Check DNS TXT record verification using Google DNS API
 export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> => {
   if (!domain.verificationCode) {
     console.error("No verification code found for domain");
     return false;
   }
 
-  // In production, this would make a DNS lookup request to check for TXT records
-  // For our demo, we'll simulate API success with a 30% chance of failure
   console.log(`[VERIFICATION] Checking DNS TXT record for ${domain.name}`);
   
-  // Simulate an API call with timeout
-  return new Promise(async (resolve) => {
-    // Reduced timeout for demo purposes (from 2000ms to 1500ms)
-    setTimeout(async () => {
-      const isSuccessful = Math.random() > 0.3; // 70% success rate for demo
-      
-      console.log(`[VERIFICATION] DNS verification ${isSuccessful ? 'passed' : 'failed'} for ${domain.name}`);
-      
-      if (isSuccessful) {
-        // Fetch domain expiration date
-        const expirationDate = await fetchDomainExpirationDate(domain.name);
-        
-        const updatedDomain: Domain = {
-          ...domain,
-          verificationStatus: VerificationStatus.VERIFIED,
-          verificationDate: new Date(),
-          isVerified: true,
-          // Update expiration date if we found one
-          ...(expirationDate && { expirationDate })
-        };
-        
-        const updated = updateDomain(updatedDomain);
-        if (updated) {
-          // Send success email in a real application
-          sendVerificationSuccessEmail(domain.sellerId, domain.name);
-        }
-      } else {
-        const updatedDomain: Domain = {
-          ...domain,
-          verificationStatus: VerificationStatus.FAILED,
-          verificationDate: new Date(),
-          verificationNotes: "DNS TXT record verification failed. Please ensure you've added the TXT record correctly."
-        };
-        
-        const updated = updateDomain(updatedDomain);
-        if (updated) {
-          // Send failure email in a real application
-          sendVerificationFailureEmail(domain.sellerId, domain.name, "DNS TXT record verification failed");
-        }
+  try {
+    const { data, error } = await supabase.functions.invoke('domain-verification', {
+      body: {
+        action: 'checkDnsTxtRecord',
+        domain: domain.name,
+        verificationCode: domain.verificationCode
       }
+    });
+
+    if (error) {
+      console.error('Error invoking domain-verification function:', error);
       
-      resolve(isSuccessful);
-    }, 1500); // Reduced timeout for testing
-  });
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Error checking DNS TXT record. Please try again later."
+      };
+      
+      updateDomain(updatedDomain);
+      sendVerificationFailureEmail(domain.sellerId, domain.name, "Error checking DNS TXT record");
+      return false;
+    }
+
+    if (!data.success) {
+      console.error('Error checking DNS TXT record:', data.error);
+      
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Error checking DNS TXT record. Please try again later."
+      };
+      
+      updateDomain(updatedDomain);
+      sendVerificationFailureEmail(domain.sellerId, domain.name, "Error checking DNS TXT record");
+      return false;
+    }
+
+    const isVerified = data.isVerified;
+    console.log(`[VERIFICATION] DNS verification ${isVerified ? 'passed' : 'failed'} for ${domain.name}`);
+    
+    if (isVerified) {
+      // Fetch domain expiration date
+      const expirationDate = await fetchDomainExpirationDate(domain.name);
+      
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.VERIFIED,
+        verificationDate: new Date(),
+        isVerified: true,
+        // Update expiration date if we found one
+        ...(expirationDate && { expirationDate })
+      };
+      
+      const updated = updateDomain(updatedDomain);
+      if (updated) {
+        sendVerificationSuccessEmail(domain.sellerId, domain.name);
+      }
+    } else {
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "DNS TXT record verification failed. Please ensure you've added the TXT record correctly."
+      };
+      
+      const updated = updateDomain(updatedDomain);
+      if (updated) {
+        sendVerificationFailureEmail(domain.sellerId, domain.name, "DNS TXT record verification failed");
+      }
+    }
+    
+    return isVerified;
+  } catch (error) {
+    console.error('Error in checkDnsTxtVerification:', error);
+    
+    const updatedDomain: Domain = {
+      ...domain,
+      verificationStatus: VerificationStatus.FAILED,
+      verificationDate: new Date(),
+      verificationNotes: "Error checking DNS TXT record. Please try again later."
+    };
+    
+    updateDomain(updatedDomain);
+    return false;
+  }
+};
+
+// Get WHOIS email for domain verification
+export const getWhoisEmail = async (domain: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('domain-verification', {
+      body: {
+        action: 'getWhoisEmail',
+        domain
+      }
+    });
+
+    if (error) {
+      console.error('Error invoking domain-verification function:', error);
+      return null;
+    }
+
+    if (!data.success) {
+      console.error('Error fetching WHOIS email:', data.error);
+      return null;
+    }
+
+    return data.email;
+  } catch (error) {
+    console.error('Error in getWhoisEmail:', error);
+    return null;
+  }
 };
 
 // Verify domain via WHOIS email
-export const startEmailVerification = async (domain: Domain, ownerEmail: string): Promise<boolean> => {
-  if (!domain || !ownerEmail) {
+export const startEmailVerification = async (domain: Domain, ownerEmail?: string): Promise<boolean> => {
+  if (!domain) {
     return false;
+  }
+  
+  // If no owner email is provided, try to fetch it from WHOIS
+  if (!ownerEmail) {
+    ownerEmail = await getWhoisEmail(domain.name);
+    
+    if (!ownerEmail) {
+      console.error(`[VERIFICATION] Could not find WHOIS email for ${domain.name}`);
+      
+      const updatedDomain: Domain = {
+        ...domain,
+        verificationStatus: VerificationStatus.FAILED,
+        verificationDate: new Date(),
+        verificationNotes: "Could not find WHOIS email for this domain. Please try another verification method."
+      };
+      
+      updateDomain(updatedDomain);
+      return false;
+    }
   }
   
   const verificationCode = generateVerificationCode();
@@ -103,30 +205,6 @@ export const startEmailVerification = async (domain: Domain, ownerEmail: string)
   };
   
   updateDomain(updatedDomain);
-  
-  // Simulate email verification process (success/failure)
-  setTimeout(() => {
-    // 70% chance of success for demo
-    const isSuccessful = Math.random() > 0.3;
-    
-    if (isSuccessful) {
-      const verifiedDomain: Domain = {
-        ...updatedDomain,
-        verificationStatus: VerificationStatus.VERIFIED,
-        verificationDate: new Date(),
-        isVerified: true
-      };
-      updateDomain(verifiedDomain);
-    } else {
-      const failedDomain: Domain = {
-        ...updatedDomain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "Email verification failed. Please try again or use a different method."
-      };
-      updateDomain(failedDomain);
-    }
-  }, 2000);
   
   // Send verification email
   return sendEmail("DOMAIN_VERIFICATION", {
@@ -233,7 +311,7 @@ export const getVerificationInstructions = (domain: Domain, method: Verification
         TTL: 3600 (or default)`;
         
     case VerificationMethod.WHOIS_EMAIL:
-      return `We've sent a verification email to the email address listed in the WHOIS information for ${domain.name}. 
+      return `We will send a verification email to the email address listed in the WHOIS information for ${domain.name}. 
         Please check your email and click the verification link.`;
         
     default:
@@ -241,7 +319,7 @@ export const getVerificationInstructions = (domain: Domain, method: Verification
   }
 };
 
-// Simulate verification timeout - improved version
+// Simulate verification timeout
 export const simulateVerificationTimeout = (domainId: string, timeoutMs: number = 15000): void => {
   console.log(`[VERIFICATION] Setting timeout for domain ${domainId} for ${timeoutMs}ms`);
   
