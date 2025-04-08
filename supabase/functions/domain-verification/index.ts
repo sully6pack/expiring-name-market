@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     // Check if API key is configured
-    if (!WHOISXML_API_KEY) {
+    if (!WHOISXML_API_KEY && (action === 'getExpirationDate' || action === 'getWhoisEmail')) {
       console.error("WhoisXML API key not configured");
       return new Response(
         JSON.stringify({ success: false, error: "API key not configured" }),

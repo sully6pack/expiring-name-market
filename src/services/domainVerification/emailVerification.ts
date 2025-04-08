@@ -1,167 +1,129 @@
 
 import { Domain, VerificationStatus } from "@/types";
 import { updateDomain } from "../domainService";
-import { fetchDomainExpirationDate } from "./verificationUtils";
-import { getWhoisEmail, generateVerificationCode } from "./verificationUtils";
+import { getWhoisEmail } from "./verificationUtils";
+import { sendVerificationEmail } from "../emailService";
 import { supabase } from "@/lib/supabase";
 
-// Verify domain via WHOIS email
-export const startEmailVerification = async (domain: Domain, ownerEmail?: string): Promise<boolean> => {
-  if (!domain) {
+// Start email verification process
+export const startEmailVerification = async (domain: Domain, userEmail: string): Promise<boolean> => {
+  console.log(`[VERIFICATION] Starting email verification for ${domain.name}`);
+  
+  if (!domain.verificationCode) {
+    console.error("No verification code found for domain");
     return false;
   }
   
-  // If no owner email is provided, try to fetch it from WHOIS
-  if (!ownerEmail) {
-    ownerEmail = await getWhoisEmail(domain.name);
+  try {
+    // Get the domain's WHOIS email
+    const whoisEmail = await getWhoisEmail(domain.name);
+    console.log(`[VERIFICATION] WHOIS email for ${domain.name}: ${whoisEmail || 'Not found'}`);
     
-    if (!ownerEmail) {
-      console.error(`[VERIFICATION] Could not find WHOIS email for ${domain.name}`);
-      
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "Could not find WHOIS email for this domain. Please try another verification method."
-      };
-      
-      updateDomain(updatedDomain);
+    // If no WHOIS email is found, use the user's email
+    const targetEmail = whoisEmail || userEmail;
+    
+    if (!targetEmail) {
+      console.error("No email address available for verification");
       return false;
     }
-  }
-  
-  const verificationCode = generateVerificationCode();
-  
-  // Update domain with verification info
-  const updatedDomain: Domain = {
-    ...domain,
-    verificationMethod: VerificationMethod.WHOIS_EMAIL,
-    verificationCode,
-    verificationStatus: VerificationStatus.PENDING
-  };
-  
-  updateDomain(updatedDomain);
-  
-  try {
-    // Send verification email via the edge function
+    
+    // Send the verification email
     const { data, error } = await supabase.functions.invoke('domain-verification', {
       body: {
         action: 'sendVerificationEmail',
         domain: domain.name,
-        email: ownerEmail,
-        verificationCode
+        email: targetEmail,
+        verificationCode: domain.verificationCode
       }
     });
-
+    
     if (error) {
-      console.error('Error invoking email verification function:', error);
+      console.error('Error sending verification email:', error);
       return false;
     }
-
+    
     if (!data.success) {
-      console.error('Error sending verification email:', data.error);
+      console.error('Failed to send verification email:', data.error);
       return false;
     }
-
+    
+    console.log(`[VERIFICATION] Verification email sent to ${targetEmail}`);
+    
+    // Update domain status to pending
+    const updatedDomain: Domain = {
+      ...domain,
+      verificationStatus: VerificationStatus.PENDING,
+      verificationNotes: `Verification email sent to ${targetEmail}. Please check your email and click the verification link.`
+    };
+    
+    await updateDomain(updatedDomain);
+    
     return true;
   } catch (error) {
-    console.error('Error sending verification email:', error);
+    console.error("Error in startEmailVerification:", error);
+    
+    // Update domain status to failed
+    const updatedDomain: Domain = {
+      ...domain,
+      verificationStatus: VerificationStatus.FAILED,
+      verificationDate: new Date(),
+      verificationNotes: "Failed to send verification email. Please try again."
+    };
+    
+    await updateDomain(updatedDomain);
+    
     return false;
   }
 };
 
-// Verify domain via verification code (email flow)
+// Verify domain with code from email
 export const verifyDomainWithCode = async (domainId: string, code: string): Promise<boolean> => {
+  console.log(`[VERIFICATION] Verifying domain ${domainId} with code ${code}`);
+  
   try {
-    console.log(`Verifying domain ID: ${domainId} with code: ${code}`);
-    
-    // Get domain from Supabase
-    const { data: domain, error } = await supabase
+    // Get the domain from the database
+    const { data: domainData, error: domainError } = await supabase
       .from('domains')
       .select('*')
       .eq('id', domainId)
       .single();
     
-    if (error || !domain) {
-      console.error(`Domain not found with ID: ${domainId}`, error);
+    if (domainError || !domainData) {
+      console.error("Error fetching domain:", domainError);
       return false;
     }
     
-    console.log(`Domain found: ${domain.name}, verification code: ${domain.verification_code}, input code: ${code}`);
-    
-    // For testing/development purposes, allow any code of sufficient length to verify
-    // In production, this should strictly check the actual verification code
-    const isVerified = domain.verification_code === code || code.length >= 8;
-    
-    if (!isVerified) {
+    // Check if the verification code matches
+    if (domainData.verification_code !== code) {
       console.error("Verification code doesn't match");
+      
+      // Update domain status to failed
+      await supabase
+        .from('domains')
+        .update({
+          verification_status: VerificationStatus.FAILED,
+          verification_date: new Date().toISOString(),
+          verification_notes: "Invalid verification code."
+        })
+        .eq('id', domainId);
+      
       return false;
     }
     
-    // Fetch domain expiration date
-    let expirationDate = null;
-    try {
-      expirationDate = await fetchDomainExpirationDate(domain.name);
-      console.log(`Fetched expiration date for ${domain.name}:`, expirationDate);
-    } catch (expError) {
-      console.error(`Error fetching expiration date: ${expError}`);
-      // Continue with verification even if we fail to get expiration date
-    }
-    
-    // Update domain verification status
-    const updateData = {
-      verification_status: VerificationStatus.VERIFIED,
-      verification_date: new Date().toISOString(),
-      is_verified: true,
-      ...(expirationDate && { expiration_date: expirationDate.toISOString() })
-    };
-    
-    console.log(`Domain verified, updating status:`, updateData);
-    
-    const { error: updateError } = await supabase
+    // Verification successful, update domain
+    await supabase
       .from('domains')
-      .update(updateData)
+      .update({
+        verification_status: VerificationStatus.VERIFIED,
+        verification_date: new Date().toISOString(),
+        is_verified: true
+      })
       .eq('id', domainId);
     
-    if (updateError) {
-      console.error("Error updating domain verification status:", updateError);
-      return false;
-    }
-    
-    // Update global domains list if it exists
-    if (window.globalDomains) {
-      try {
-        const domainIndex = window.globalDomains.findIndex(d => d.id === domainId);
-        if (domainIndex >= 0) {
-          const updatedDomain: Domain = {
-            ...window.globalDomains[domainIndex],
-            verificationStatus: VerificationStatus.VERIFIED,
-            verificationDate: new Date(),
-            isVerified: true,
-            ...(expirationDate && { expirationDate })
-          };
-          
-          window.globalDomains[domainIndex] = updatedDomain;
-          
-          try {
-            localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
-            console.log(`Domain verification status updated in localStorage for ${domain.name}`);
-          } catch (error) {
-            console.error('Error saving domains to localStorage:', error);
-          }
-        }
-      } catch (err) {
-        console.error('Error updating globalDomains:', err);
-        // Continue with verification even if updating globalDomains fails
-      }
-    }
-    
+    console.log(`[VERIFICATION] Domain ${domainId} verified successfully`);
     return true;
   } catch (error) {
-    console.error("Error verifying domain with code:", error);
+    console.error("Error in verifyDomainWithCode:", error);
     return false;
   }
 };
-
-// Add missing import for VerificationMethod
-import { VerificationMethod } from "@/types";

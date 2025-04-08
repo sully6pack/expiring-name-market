@@ -1,54 +1,64 @@
 
-import { Domain, VerificationMethod, VerificationStatus } from "@/types";
-import { updateDomain } from "../domainService";
-import { generateVerificationCode } from "./verificationUtils";
+import { Domain, VerificationMethod } from "@/types";
 
-// Get instructions for domain verification
+// Get verification instructions based on the domain and method
 export const getVerificationInstructions = (domain: Domain, method: VerificationMethod): string => {
-  const verificationCode = domain.verificationCode || generateVerificationCode();
+  const verificationCode = domain.verificationCode || "VERIFICATION_CODE";
   
   switch (method) {
     case VerificationMethod.DNS_TXT:
-      return `Add a TXT record to your domain with the following information:
-        Host: @ or ${domain.name}
-        Value: ${verificationCode}
-        TTL: 3600 (or default)`;
-        
+      return `1. Log in to your domain registrar account (e.g., GoDaddy, Namecheap).
+      
+2. Navigate to the DNS management section for ${domain.name}.
+
+3. Add a new TXT record with these values:
+   - Host/Name: @ (or leave blank, depending on your registrar)
+   - Value/Content: ${verificationCode}
+   - TTL: 3600 (or 1 hour, if available)
+
+4. Save the changes.
+
+5. Click "Start Verification" below to verify your domain ownership.
+
+NOTE: DNS changes may take up to 24-48 hours to fully propagate, but we'll check immediately and continue trying for verification.`;
+
     case VerificationMethod.DNS_CNAME:
-      return `Add a CNAME record to your domain with the following information:
-        Host: verify
-        Value: verification.example.com
-        TTL: 3600 (or default)`;
-        
+      return `1. Log in to your domain registrar account (e.g., GoDaddy, Namecheap).
+      
+2. Navigate to the DNS management section for ${domain.name}.
+
+3. Add a new CNAME record with these values:
+   - Host/Name: verify (this will create verify.${domain.name})
+   - Value/Points to: ${verificationCode}.verify.domainsell.io
+   - TTL: 3600 (or 1 hour, if available)
+
+4. Save the changes.
+
+5. Click "Start Verification" below to verify your domain ownership.
+
+NOTE: DNS changes may take up to 24-48 hours to fully propagate, but we'll check immediately.`;
+
     case VerificationMethod.WHOIS_EMAIL:
-      return `We will send a verification email to the email address listed in the WHOIS information for ${domain.name}. 
-        Please check your email and click the verification link.`;
-        
+      return `1. We'll send a verification email to the address listed in your domain's WHOIS records.
+      
+2. If your WHOIS information is private or protected, you may need to either:
+   - Temporarily disable WHOIS privacy protection, or
+   - Forward the verification email from your privacy service email to your actual email
+
+3. Check your email (including spam folder) for a message from domainsell.io with a verification link or code.
+
+4. Click the verification link in the email or enter the code on this page to verify ownership.
+
+5. Click "Start Verification" below to initiate the email verification process.`;
+
     default:
-      return `Please contact support for assistance with domain verification.`;
+      return "Please select a verification method to see instructions.";
   }
 };
 
-// Simulate verification timeout
-export const simulateVerificationTimeout = (domainId: string, timeoutMs: number = 15000): void => {
-  console.log(`[VERIFICATION] Setting timeout for domain ${domainId} for ${timeoutMs}ms`);
-  
-  setTimeout(() => {
-    const domains = window.globalDomains || [];
-    const domain = domains.find(d => d.id === domainId);
-    
-    if (domain && domain.verificationStatus === VerificationStatus.PENDING) {
-      console.log(`[VERIFICATION] Timeout reached for domain ${domainId}, marking as failed`);
-      
-      // If still pending after timeout, mark as failed
-      const updatedDomain: Domain = {
-        ...domain,
-        verificationStatus: VerificationStatus.FAILED,
-        verificationDate: new Date(),
-        verificationNotes: "Verification timed out. Please try again."
-      };
-      
-      updateDomain(updatedDomain);
-    }
-  }, timeoutMs);
+// Simulate a verification timeout for testing purposes
+export const simulateVerificationTimeout = async (domainId: string): Promise<void> => {
+  // This function is for development/testing only
+  console.log(`[DEV] Simulating verification timeout for domain ${domainId}`);
+  return new Promise(resolve => setTimeout(resolve, 15000));
 };
