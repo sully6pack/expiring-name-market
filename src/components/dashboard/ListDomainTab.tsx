@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -95,6 +94,12 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
             case "api_error":
               errorMessage = "Error connecting to verification service. Please try again later.";
               break;
+            case "invalid_api_response":
+              errorMessage = "Invalid response from verification service. Please try again.";
+              break;
+            case "unexpected_error":
+              errorMessage = "An unexpected error occurred. Please try again.";
+              break;
             default:
               errorMessage = `Domain verification failed: ${result.reason || "Unknown error"}`;
           }
@@ -139,7 +144,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     } catch (error) {
       console.error("Error validating domain:", error);
       setVerificationStatus("error");
-      setVerificationMessage("An error occurred while verifying the domain.");
+      setVerificationMessage("An error occurred while verifying the domain. Please try again.");
       return false;
     } finally {
       setIsVerifying(false);
