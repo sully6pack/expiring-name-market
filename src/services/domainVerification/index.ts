@@ -50,7 +50,8 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
     
     console.log(`Verifying domain: ${domain}`);
     
-    // Call the actual verification function
+    // Call the actual verification function with more verbose logging
+    console.log(`Initiating Supabase function call for domain: ${domain}`);
     const { data, error } = await supabase.functions.invoke('domain-verification', {
       body: {
         action: 'verifyDomain',
@@ -58,14 +59,24 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
       }
     });
     
+    console.log(`Supabase function response:`, data, error);
+    
     if (error) {
       console.error("Error verifying domain:", error);
-      return null;
+      return {
+        isValid: false,
+        reason: "api_error",
+        source: "function_error"
+      };
     }
     
     if (!data.success) {
       console.error("Error verifying domain:", data.error);
-      return null;
+      return {
+        isValid: false,
+        reason: data.reason || "verification_failed",
+        source: data.source
+      };
     }
     
     // Return the full response including reason and source if available
@@ -76,6 +87,10 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
     };
   } catch (error) {
     console.error("Error verifying domain:", error);
-    return null;
+    return {
+      isValid: false,
+      reason: "unexpected_error",
+      source: "client"
+    };
   }
 };

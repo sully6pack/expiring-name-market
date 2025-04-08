@@ -177,12 +177,20 @@ async function verifyDomainExists(domain: string) {
         );
       } catch (apiError) {
         console.error(`Error using WhoisXML API for ${domain}:`, apiError);
-        // Fall back to basic checks below
       }
     }
     
-    // IMPORTANT CHANGE: For fallback purposes, consider well-formed domains as valid
-    // This addresses the issue where the verification is reporting real domains as not existing
+    // For test domains or example domains, always return true
+    if (domain.includes("test") || domain.includes("example")) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          isValid: true,
+          source: "mock"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Parse the domain to check TLD
     const parts = domain.split('.');
@@ -225,25 +233,57 @@ async function verifyDomainExists(domain: string) {
       );
     }
     
-    // For test domains or example domains, always return true
-    if (domain.includes("test") || domain.includes("example")) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          isValid: true,
-          source: "mock"
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // IMPORTANT: For non-test domains, perform a DNS lookup to verify domain existence
+    // This is the critical change to improve verification
+    try {
+      const dnsUrl = `https://dns.google/resolve?name=${domain}&type=A`;
+      const dnsResponse = await fetch(dnsUrl);
+      const dnsData = await dnsResponse.json();
+      
+      // If we get a valid response with answers or authority records, the domain likely exists
+      if (dnsResponse.ok && (
+          (dnsData.Answer && dnsData.Answer.length > 0) || 
+          (dnsData.Authority && dnsData.Authority.length > 0)
+      )) {
+        console.log(`DNS lookup confirmed domain ${domain} exists`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            isValid: true,
+            source: "dns_lookup"
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // If NXDOMAIN response, the domain doesn't exist
+      if (dnsData.Status === 3) { // NXDOMAIN
+        console.log(`DNS lookup shows domain ${domain} does not exist (NXDOMAIN)`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            isValid: false,
+            reason: "domain_not_found",
+            source: "dns_lookup"
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // For other cases, be cautious and conservative
+      console.log(`DNS lookup for ${domain} was inconclusive`);
+    } catch (dnsError) {
+      console.error(`Error during DNS lookup for ${domain}:`, dnsError);
     }
     
-    // For demo purposes, assume most well-formed domains are valid
-    // This addresses the issue where real domains were being reported as invalid
+    // If we reached here without a definitive answer, be conservative and say it's not valid
+    // This is safer than incorrectly validating domains that don't exist
     return new Response(
       JSON.stringify({ 
         success: true, 
-        isValid: true,
-        source: "fallback"
+        isValid: false,
+        reason: "verification_failed",
+        details: "Could not confirm domain existence"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -72,7 +72,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       console.log("Domain verification complete:", result);
       
       if (!result || !result.isValid) {
-        console.error("Domain verification failed for:", domainName);
+        console.error("Domain verification failed for:", domainName, result);
         let errorMessage = "Could not verify this domain.";
         
         if (result && result.reason) {
@@ -89,8 +89,14 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
             case "domain_too_short":
               errorMessage = "Domain name is too short. It must be at least 3 characters.";
               break;
+            case "verification_failed":
+              errorMessage = "Domain verification failed. Please try again or use a different domain.";
+              break;
+            case "api_error":
+              errorMessage = "Error connecting to verification service. Please try again later.";
+              break;
             default:
-              errorMessage = "Domain verification failed. Please try again.";
+              errorMessage = `Domain verification failed: ${result.reason || "Unknown error"}`;
           }
         }
         
