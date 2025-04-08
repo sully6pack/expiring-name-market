@@ -274,7 +274,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
     
     // Update domain verification status
     const updateData = {
-      verification_status: 'verified',
+      verification_status: VerificationStatus.VERIFIED,  // Use enum instead of string
       verification_date: new Date().toISOString(),
       is_verified: true,
       ...(expirationDate && { expiration_date: expirationDate.toISOString() })
@@ -297,9 +297,9 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       try {
         const domainIndex = window.globalDomains.findIndex(d => d.id === domainId);
         if (domainIndex >= 0) {
-          const updatedDomain = {
+          const updatedDomain: Domain = {  // Explicitly type as Domain
             ...window.globalDomains[domainIndex],
-            verificationStatus: 'verified',
+            verificationStatus: VerificationStatus.VERIFIED,  // Use enum instead of string
             verificationDate: new Date(),
             isVerified: true,
             ...(expirationDate && { expirationDate })
