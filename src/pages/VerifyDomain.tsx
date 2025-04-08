@@ -20,9 +20,10 @@ const VerifyDomain = () => {
   useEffect(() => {
     const codeFromUrl = searchParams.get("code");
     if (domainId && codeFromUrl) {
+      console.log("Auto-verifying domain with code from URL", domainId, codeFromUrl);
       handleVerification(codeFromUrl);
     }
-  }, []);
+  }, [domainId, searchParams]);
 
   const handleVerification = async (verificationCode: string) => {
     if (!domainId) {
@@ -38,7 +39,9 @@ const VerifyDomain = () => {
     setIsVerifying(true);
 
     try {
+      console.log("Starting domain verification for", domainId, "with code", verificationCode);
       const result = await verifyDomainWithCode(domainId, verificationCode);
+      console.log("Verification result:", result);
       
       if (result) {
         setVerificationResult("success");

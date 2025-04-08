@@ -112,6 +112,7 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       if (updated) {
         sendVerificationSuccessEmail(domain.sellerId, domain.name);
       }
+      return true;
     } else {
       const updatedDomain: Domain = {
         ...domain,
@@ -124,9 +125,8 @@ export const checkDnsTxtVerification = async (domain: Domain): Promise<boolean> 
       if (updated) {
         sendVerificationFailureEmail(domain.sellerId, domain.name, "DNS TXT record verification failed");
       }
+      return false;
     }
-    
-    return isVerified;
   } catch (error) {
     console.error('Error in checkDnsTxtVerification:', error);
     
@@ -239,18 +239,21 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
   try {
     console.log(`Verifying domain ID: ${domainId} with code: ${code}`);
     
-    // Get domain from our service
-    const domains = window.globalDomains || [];
-    const domain = domains.find(d => d.id === domainId);
+    // Get domain from Supabase
+    const { data: domain, error } = await supabase
+      .from('domains')
+      .select('*')
+      .eq('id', domainId)
+      .single();
     
-    if (!domain) {
-      console.error(`Domain not found with ID: ${domainId}`);
+    if (error || !domain) {
+      console.error(`Domain not found with ID: ${domainId}`, error);
       return false;
     }
     
-    console.log(`Domain found: ${domain.name}, verification code: ${domain.verificationCode}, input code: ${code}`);
+    console.log(`Domain found: ${domain.name}, verification code: ${domain.verification_code}, input code: ${code}`);
     
-    if (domain.verificationCode !== code) {
+    if (domain.verification_code !== code) {
       console.error("Verification code doesn't match");
       return false;
     }
@@ -259,34 +262,49 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
     const expirationDate = await fetchDomainExpirationDate(domain.name);
     
     // Update domain verification status
-    const updatedDomain: Domain = {
-      ...domain,
-      verificationStatus: VerificationStatus.VERIFIED,
-      verificationDate: new Date(),
-      isVerified: true,
-      // Update expiration date if we found one
-      ...(expirationDate && { expirationDate })
+    const updateData = {
+      verification_status: VerificationStatus.VERIFIED,
+      verification_date: new Date().toISOString(),
+      is_verified: true,
+      ...(expirationDate && { expiration_date: expirationDate.toISOString() })
     };
     
-    console.log(`Domain verified, updating status: ${JSON.stringify(updatedDomain)}`);
+    console.log(`Domain verified, updating status:`, updateData);
     
-    const updated = updateDomain(updatedDomain);
+    const { error: updateError } = await supabase
+      .from('domains')
+      .update(updateData)
+      .eq('id', domainId);
     
-    if (updated) {
-      // Update the global domains list to reflect the verification
-      window.globalDomains = window.globalDomains.map(d => 
-        d.id === domainId ? updatedDomain : d
-      );
-      
-      try {
-        localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
-        console.log(`Domain verification status updated in localStorage for ${domain.name}`);
-      } catch (error) {
-        console.error('Error saving domains to localStorage:', error);
+    if (updateError) {
+      console.error("Error updating domain verification status:", updateError);
+      return false;
+    }
+    
+    // Update global domains list if it exists
+    if (window.globalDomains) {
+      const domainIndex = window.globalDomains.findIndex(d => d.id === domainId);
+      if (domainIndex >= 0) {
+        const updatedDomain = {
+          ...window.globalDomains[domainIndex],
+          verificationStatus: VerificationStatus.VERIFIED,
+          verificationDate: new Date(),
+          isVerified: true,
+          ...(expirationDate && { expirationDate })
+        };
+        
+        window.globalDomains[domainIndex] = updatedDomain;
+        
+        try {
+          localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
+          console.log(`Domain verification status updated in localStorage for ${domain.name}`);
+        } catch (error) {
+          console.error('Error saving domains to localStorage:', error);
+        }
       }
     }
     
-    return updated;
+    return true;
   } catch (error) {
     console.error("Error verifying domain with code:", error);
     return false;
