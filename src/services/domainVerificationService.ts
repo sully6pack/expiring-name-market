@@ -206,16 +206,32 @@ export const startEmailVerification = async (domain: Domain, ownerEmail?: string
   
   updateDomain(updatedDomain);
   
-  // Send verification email
-  return sendEmail("DOMAIN_VERIFICATION", {
-    to: ownerEmail,
-    subject: `Verify your ownership of ${domain.name}`,
-    templateData: {
-      domainName: domain.name,
-      verificationCode,
-      verificationUrl: `https://example.com/verify-domain/${domain.id}?code=${verificationCode}`
+  try {
+    // Send verification email via the edge function
+    const { data, error } = await supabase.functions.invoke('domain-verification', {
+      body: {
+        action: 'sendVerificationEmail',
+        domain: domain.name,
+        email: ownerEmail,
+        verificationCode
+      }
+    });
+
+    if (error) {
+      console.error('Error invoking email verification function:', error);
+      return false;
     }
-  });
+
+    if (!data.success) {
+      console.error('Error sending verification email:', data.error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return false;
+  }
 };
 
 // Verify domain via verification code (email flow)

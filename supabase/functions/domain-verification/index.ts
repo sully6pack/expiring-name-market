@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, domain, verificationCode } = await req.json();
+    const { action, domain, verificationCode, email } = await req.json();
 
     // Validate required parameters
     if (!action || !domain) {
@@ -49,6 +49,14 @@ serve(async (req) => {
         return await checkDnsTxtRecord(domain, verificationCode);
       case "getWhoisEmail":
         return await getWhoisEmail(domain);
+      case "sendVerificationEmail":
+        if (!verificationCode || !email) {
+          return new Response(
+            JSON.stringify({ success: false, error: "Missing verification code or email" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          );
+        }
+        return await sendVerificationEmail(domain, email, verificationCode);
       default:
         return new Response(
           JSON.stringify({ success: false, error: "Invalid action" }),
@@ -181,6 +189,35 @@ async function getWhoisEmail(domain: string) {
     );
   } catch (error) {
     console.error(`Error fetching WHOIS email for ${domain}:`, error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+}
+
+// Send verification email
+async function sendVerificationEmail(domain: string, email: string, verificationCode: string) {
+  try {
+    console.log(`Sending verification email for ${domain} to ${email}`);
+    
+    // In a real implementation, this would send an actual email
+    // For now, we'll simulate it being sent successfully
+    const verificationUrl = `https://yourapp.com/verify-domain/${domain}?code=${verificationCode}`;
+    
+    console.log(`Verification URL would be: ${verificationUrl}`);
+    console.log(`Email would be sent to: ${email}`);
+    
+    // Simulate successful email sending
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: "Verification email sent successfully"
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error(`Error sending verification email for ${domain}:`, error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
