@@ -39,6 +39,42 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          name: string | null
+          phone: string | null
+          profile_image_url: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          is_admin?: boolean | null
+          name?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_admin?: boolean | null
+          name?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
