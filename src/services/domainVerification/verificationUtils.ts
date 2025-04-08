@@ -1,6 +1,7 @@
 
 import { Domain } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { isValidDomainName } from "@/utils/validation";
 
 // Generate a random verification code for domain verification
 export const generateVerificationCode = (): string => {
@@ -10,6 +11,12 @@ export const generateVerificationCode = (): string => {
 // Fetch domain expiration date using WhoisXML API
 export const fetchDomainExpirationDate = async (domainName: string): Promise<Date | null> => {
   console.log(`[VERIFICATION] Fetching expiration date for ${domainName}`);
+  
+  // First validate that the domain has a valid format
+  if (!isValidDomainName(domainName)) {
+    console.error(`[VERIFICATION] Invalid domain format: ${domainName}`);
+    return null;
+  }
   
   try {
     const { data, error } = await supabase.functions.invoke('domain-verification', {
@@ -43,6 +50,12 @@ export const fetchDomainExpirationDate = async (domainName: string): Promise<Dat
 
 // Get WHOIS email for domain verification
 export const getWhoisEmail = async (domain: string): Promise<string | null> => {
+  // First validate that the domain has a valid format
+  if (!isValidDomainName(domain)) {
+    console.error(`[VERIFICATION] Invalid domain format: ${domain}`);
+    return null;
+  }
+  
   try {
     const { data, error } = await supabase.functions.invoke('domain-verification', {
       body: {

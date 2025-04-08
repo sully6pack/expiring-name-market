@@ -15,6 +15,7 @@ import { DomainCategory, Domain, VerificationStatus } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { verifyDomain, fetchDomainExpirationDate } from "@/services/domainVerification";
+import { isValidDomainName } from "@/utils/validation";
 
 interface ListDomainTabProps {
   onSubmit: (domainData: {
@@ -32,6 +33,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined);
   const [category, setCategory] = useState<DomainCategory>(DomainCategory.Business);
   const [isValidationError, setIsValidationError] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "verifying" | "success" | "error">("idle");
   const [verificationMessage, setVerificationMessage] = useState("");
@@ -41,12 +43,24 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const validateDomain = async () => {
     if (!domainName) {
       setIsValidationError(true);
+      setValidationMessage("Please enter a domain name");
       setVerificationMessage("Please enter a domain name");
+      setVerificationStatus("error");
+      return false;
+    }
+
+    // Basic format validation
+    if (!isValidDomainName(domainName)) {
+      setIsValidationError(true);
+      setValidationMessage("Please enter a valid domain name format (e.g., example.com)");
+      setVerificationMessage("Invalid domain format");
+      setVerificationStatus("error");
       return false;
     }
 
     setIsVerifying(true);
     setVerificationStatus("verifying");
+    setVerificationMessage("Verifying domain...");
     
     try {
       console.log("Starting domain verification process for:", domainName);
@@ -57,7 +71,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       if (!isValid) {
         console.error("Domain verification failed for:", domainName);
         setVerificationStatus("error");
-        setVerificationMessage("Could not verify this domain. Please check the domain name and try again.");
+        setVerificationMessage("Could not verify this domain. The domain may not exist or be registered.");
         return false;
       }
       
@@ -106,8 +120,21 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     e.preventDefault();
     
     // Basic validation
-    if (!domainName || !description || !category) {
+    if (!domainName) {
       setIsValidationError(true);
+      setValidationMessage("Please enter a domain name");
+      return;
+    }
+    
+    if (!description) {
+      setIsValidationError(true);
+      setValidationMessage("Please enter a description");
+      return;
+    }
+
+    if (!isValidDomainName(domainName)) {
+      setIsValidationError(true);
+      setValidationMessage("Please enter a valid domain name format");
       return;
     }
     
@@ -136,6 +163,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     setExpirationDate(undefined);
     setCategory(DomainCategory.Business);
     setIsValidationError(false);
+    setValidationMessage("");
     setVerificationStatus("idle");
     setVerificationMessage("");
     setExpirationSource(null);
@@ -161,7 +189,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>
-                Please fill in all required fields.
+                {validationMessage || "Please fill in all required fields correctly."}
               </AlertDescription>
             </Alert>
           )}

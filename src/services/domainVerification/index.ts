@@ -32,20 +32,37 @@ export {
   verifyDomainWithCode 
 };
 
-// Simple function to check domain verification
+// Function to check domain verification
 export const verifyDomain = async (domain: string): Promise<boolean> => {
   try {
-    // For demo purposes, always return true
-    // In a production environment, you would use an actual API to verify the domain
-    console.log(`Verifying domain: ${domain} (demo mode - always returns true)`);
+    // For demo purposes, we'll do a simple validation first
+    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
+    if (!domainRegex.test(domain)) {
+      console.error(`Invalid domain format: ${domain}`);
+      return false;
+    }
     
-    // This code was previously using WhoisXML API, but for simplicity
-    // we'll just return true for the demo
-    return true;
+    console.log(`Verifying domain: ${domain}`);
     
-    // If you want to use the actual API:
-    // const expirationDate = await fetchDomainExpirationDate(domain);
-    // return expirationDate !== null;
+    // Call the actual verification function
+    const { data, error } = await supabase.functions.invoke('domain-verification', {
+      body: {
+        action: 'verifyDomain',
+        domain: domain
+      }
+    });
+    
+    if (error) {
+      console.error("Error verifying domain:", error);
+      return false;
+    }
+    
+    if (!data.success) {
+      console.error("Error verifying domain:", data.error);
+      return false;
+    }
+    
+    return data.isValid;
   } catch (error) {
     console.error("Error verifying domain:", error);
     return false;
