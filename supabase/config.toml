@@ -2,4 +2,5 @@
 project_id = "ktldlcyglwcqjqkaxelk"
 
 [functions.domain-verification]
-verify_jwt = true
+verify_jwt = false
+

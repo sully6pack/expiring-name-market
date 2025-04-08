@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { login, register, requestPasswordReset } from "@/services/supabaseAuthService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +51,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
         }
         
         console.log("Requesting password reset for:", email);
-        const success = await requestPasswordReset(email);
-        if (success) {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        
+        if (error) {
+          toast.error(error.message);
+          setError(error.message);
+        } else {
           toast("Password reset link sent", {
             description: "Please check your email for password reset instructions"
           });
@@ -66,15 +74,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
         
         console.log("Attempting to log in user:", email);
         
-        // Login using Supabase authentication
-        const user = await login(email, password);
-        if (user) {
+        const { success, error: signInError } = await signIn(email, password);
+        if (success) {
           console.log("Login successful, calling onAuthenticate");
+          toast.success("Logged in successfully");
           if (onAuthenticate) {
             onAuthenticate();
           }
         } else {
-          console.log("Login failed, not calling onAuthenticate");
+          console.log("Login failed:", signInError);
+          setError(signInError || "Login failed. Please check your credentials.");
+          toast.error(signInError || "Login failed");
         }
       } else {
         // Handle registration with validation
@@ -92,15 +102,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
         
         console.log("Attempting to register user:", email);
         // Handle registration
-        const user = await register(email, name || email.split('@')[0], password);
-        if (user) {
+        const { success, error: signUpError } = await signUp(email, name || email.split('@')[0], password);
+        if (success) {
           console.log("Registration successful, calling onAuthenticate");
+          toast.success("Registration successful! Please check your email to verify your account.");
           if (onAuthenticate) {
             onAuthenticate();
           }
         } else {
-          console.log("Registration failed");
-          setError("Registration failed. Email might already be in use.");
+          console.log("Registration failed:", signUpError);
+          setError(signUpError || "Registration failed. Email might already be in use.");
+          toast.error(signUpError || "Registration failed");
         }
       }
     } catch (error) {
