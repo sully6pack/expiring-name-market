@@ -16,7 +16,7 @@ export const getVerificationInstructions = (domain: Domain, method: Verification
   const code = domain.verificationCode || generateVerificationCode();
   
   switch (method) {
-    case 'DNS_TXT':
+    case VerificationMethod.DNS_TXT:
       return `To verify ownership of ${domain.name}, please add the following TXT record to your domain's DNS settings:
 
 Name: @ or ${domain.name}
@@ -25,7 +25,7 @@ Value: ${code}
 
 After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
 
-    case 'DNS_CNAME':
+    case VerificationMethod.DNS_CNAME:
       return `To verify ownership of ${domain.name}, please add the following CNAME record to your domain's DNS settings:
 
 Name: verify
@@ -34,7 +34,7 @@ Value: verification.domainmarket.com
 
 After adding, click "Start Verification" below. DNS changes can take up to 24 hours to propagate, but often work within minutes.`;
 
-    case 'WHOIS_EMAIL':
+    case VerificationMethod.WHOIS_EMAIL:
       return `We'll send a verification code to the email address listed in your domain's WHOIS record. 
 
 Please ensure you have access to this email, then click "Start Verification" below to receive the code.
