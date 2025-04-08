@@ -44,3 +44,9 @@ export const isDomainValid = (expirationDate: Date): boolean => {
   // Domain must be expiring within the next 90 days and not more than 15 days past expiration
   return daysDiff <= 90 && daysDiff >= -15;
 };
+
+// Function to validate domain name format
+export const isValidDomainName = (domain: string): boolean => {
+  const pattern = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
+  return pattern.test(domain);
+};

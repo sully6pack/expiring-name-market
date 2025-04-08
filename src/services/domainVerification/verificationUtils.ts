@@ -2,7 +2,7 @@
 import { Domain } from "@/types";
 import { supabase } from "@/lib/supabase";
 
-// Generate a random verification code for DNS or email verification
+// Generate a random verification code for domain verification
 export const generateVerificationCode = (): string => {
   return `verify-${Math.random().toString(36).substring(2, 10)}`;
 };

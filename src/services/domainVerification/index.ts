@@ -1,19 +1,20 @@
 
-// Export domain verification related functions from a single entry point
-export * from './dnsVerification';
-export * from './emailVerification';
-export * from './adminVerification';
+// Export domain verification related functions
+export { fetchDomainExpirationDate, getWhoisEmail } from './verificationUtils';
 
-// Export from verificationHelpers with explicit naming
-export {
-  getVerificationInstructions,
-  generateVerificationCode,
-  simulateVerificationTimeout
-} from './verificationHelpers';
+// Export simplified verification helpers
+export const generateVerificationCode = (): string => {
+  return `verify-${Math.random().toString(36).substring(2, 8)}`;
+};
 
-// Export from verificationUtils with renamed functions to avoid conflicts
-export {
-  fetchDomainExpirationDate,
-  getWhoisEmail,
-  generateVerificationCode as generateVerificationToken
-} from './verificationUtils';
+// Simple function to check domain verification
+export const verifyDomain = async (domain: string): Promise<boolean> => {
+  try {
+    // Using the WhoisXML API to check if domain exists
+    const expirationDate = await fetchDomainExpirationDate(domain);
+    return expirationDate !== null;
+  } catch (error) {
+    console.error("Error verifying domain:", error);
+    return false;
+  }
+};
