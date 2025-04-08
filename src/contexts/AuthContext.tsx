@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User as AppUser } from '@/types';
+import { fetchCurrentUser, createUserProfile } from '@/lib/supabase';
 
 interface AuthContextProps {
   session: Session | null;
@@ -29,18 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Fetch user data from our users table
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return null;
-      }
-
-      if (!data) {
+      const userProfile = await fetchCurrentUser();
+      
+      if (!userProfile) {
         console.log('No user profile found, creating fallback profile');
         return {
           id: user.id,
@@ -53,47 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       const appUser: AppUser = {
-        id: data.id,
-        email: data.email,
-        name: data.name || data.email.split('@')[0],
-        isAdmin: data.is_admin || false,
-        isVerified: !!data.verified_at,
-        createdAt: new Date(data.created_at),
-        verifiedAt: data.verified_at ? new Date(data.verified_at) : undefined,
-        profilePicture: data.profile_image_url,
-        phone: data.phone,
-        company: data.company,
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.name || userProfile.email.split('@')[0],
+        isAdmin: userProfile.is_admin || false,
+        isVerified: !!userProfile.verified_at,
+        createdAt: new Date(userProfile.created_at),
+        verifiedAt: userProfile.verified_at ? new Date(userProfile.verified_at) : undefined,
+        profilePicture: userProfile.profile_image_url,
+        phone: userProfile.phone,
+        company: userProfile.company,
       };
       
       return appUser;
     } catch (error) {
       console.error('Error in convertToAppUser:', error);
       return null;
-    }
-  };
-
-  // Create a user profile in our database
-  const createUserProfile = async (userId: string, email: string, name: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('users')
-        .insert({
-          id: userId,
-          email,
-          name,
-          is_admin: false,
-          created_at: new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Error creating user profile:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in createUserProfile:', error);
-      return false;
     }
   };
 
@@ -196,16 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Registration failed. Please try again.' };
       }
 
-      // Create a user profile in our database
-      const profileCreated = await createUserProfile(
-        data.user.id,
-        email,
-        name || email.split('@')[0]
-      );
-
-      if (!profileCreated) {
-        return { success: false, error: 'Failed to create user profile.' };
-      }
+      // DB trigger will create the user profile automatically
+      console.log('User profile will be created automatically by the database trigger');
 
       return { success: true };
     } catch (error) {

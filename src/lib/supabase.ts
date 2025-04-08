@@ -30,6 +30,9 @@ export type DbUser = {
   created_at: string;
   is_admin: boolean;
   profile_image_url?: string;
+  phone?: string;
+  company?: string;
+  verified_at?: string;
 };
 
 export type DbDomain = {
