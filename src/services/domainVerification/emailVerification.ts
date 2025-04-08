@@ -1,16 +1,39 @@
+
 import { Domain, VerificationStatus } from "@/types";
 import { updateDomain } from "../domainService";
 import { getWhoisEmail } from "./verificationUtils";
 import { sendDomainVerificationEmail } from "../emailService";
 import { supabase } from "@/lib/supabase";
 
+// Generate a random verification code
+const generateVerificationCode = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 // Start email verification process
 export const startEmailVerification = async (domain: Domain, userEmail: string): Promise<boolean> => {
   console.log(`[VERIFICATION] Starting email verification for ${domain.name}`);
   
+  // Ensure domain has a verification code
+  const verificationCode = domain.verificationCode || generateVerificationCode();
+  
+  // Update domain with verification code if it doesn't have one
   if (!domain.verificationCode) {
-    console.error("No verification code found for domain");
-    return false;
+    console.log(`[VERIFICATION] Generating new verification code for ${domain.name}`);
+    const { error } = await supabase
+      .from('domains')
+      .update({ verification_code: verificationCode })
+      .eq('id', domain.id);
+    
+    if (error) {
+      console.error("Error updating domain with verification code:", error);
+      return false;
+    }
   }
   
   try {
@@ -27,13 +50,13 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
     }
     
     // Generate verification URL
-    const verificationUrl = `${window.location.origin}/verify-domain/${domain.id}?code=${domain.verificationCode}`;
+    const verificationUrl = `${window.location.origin}/verify-domain/${domain.id}?code=${verificationCode}`;
     
     // Send the verification email
     const emailSent = await sendDomainVerificationEmail(
       targetEmail,
       domain.name,
-      domain.verificationCode,
+      verificationCode,
       verificationUrl
     );
     
@@ -47,6 +70,7 @@ export const startEmailVerification = async (domain: Domain, userEmail: string):
     // Update domain status to pending
     const updatedDomain: Domain = {
       ...domain,
+      verificationCode: verificationCode,
       verificationStatus: VerificationStatus.PENDING,
       verificationNotes: `Verification email sent to ${targetEmail}. Please check your email and click the verification link.`
     };

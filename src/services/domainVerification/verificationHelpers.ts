@@ -1,9 +1,19 @@
 
 import { Domain, VerificationMethod } from "@/types";
 
+// Generate a random verification code
+export const generateVerificationCode = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 // Get verification instructions based on the domain and method
 export const getVerificationInstructions = (domain: Domain, method: VerificationMethod): string => {
-  const verificationCode = domain.verificationCode || "VERIFICATION_CODE";
+  const verificationCode = domain.verificationCode || generateVerificationCode();
   
   switch (method) {
     case VerificationMethod.DNS_TXT:
