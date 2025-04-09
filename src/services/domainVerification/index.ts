@@ -159,12 +159,20 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
       };
     }
     
-    // Return the full response including reason and source if available
-    return {
-      isValid: data.isValid,
-      reason: data.reason,
-      source: data.source
-    };
+    // Function call succeeded
+    if (data.isValid) {
+      return {
+        isValid: true,
+        reason: data.reason,
+        source: data.source
+      };
+    } else {
+      return {
+        isValid: false,
+        reason: data.reason || "verification_failed",
+        source: data.source || "function_success_but_invalid"
+      };
+    }
   } catch (error) {
     console.error("Unexpected error verifying domain:", error);
     return {
