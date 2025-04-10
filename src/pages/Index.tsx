@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -74,10 +75,13 @@ const Index = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Create URL search parameters for the search terms
     const searchParams = new URLSearchParams();
     if (searchTerm) searchParams.append("search", searchTerm);
     if (tldFilter !== "all") searchParams.append("tld", tldFilter);
     
+    // Navigate to domains page with search parameters
     navigate(`/domains?${searchParams.toString()}`);
   };
 

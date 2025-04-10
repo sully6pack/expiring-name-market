@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { 
   Pagination, 
   PaginationContent, 
@@ -29,15 +28,15 @@ import { toast } from "sonner";
 
 const Domains = () => {
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [domains, setDomains] = useState<Domain[]>([]);
   const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState(queryParams.get("search") || "");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [sortOrder, setSortOrder] = useState<string>("expiration-asc");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [tldFilter, setTldFilter] = useState<string>(queryParams.get("tld") || "all");
+  const [tldFilter, setTldFilter] = useState<string>(searchParams.get("tld") || "all");
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
   
   const domainsPerPage = 20;
@@ -66,9 +65,9 @@ const Domains = () => {
 
   // Parse URL parameters when the location changes
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const searchParam = queryParams.get("search");
-    const tldParam = queryParams.get("tld");
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get("search");
+    const tldParam = params.get("tld");
     
     if (searchParam) setSearchTerm(searchParam);
     if (tldParam) setTldFilter(tldParam);
@@ -127,12 +126,11 @@ const Domains = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Update URL with search parameters without redirecting
-    const searchParams = new URLSearchParams();
-    if (searchTerm) searchParams.append("search", searchTerm);
-    if (tldFilter !== "all") searchParams.append("tld", tldFilter);
+    const newParams = new URLSearchParams();
+    if (searchTerm) newParams.append("search", searchTerm);
+    if (tldFilter !== "all") newParams.append("tld", tldFilter);
     
-    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
-    window.history.pushState({}, "", newUrl);
+    setSearchParams(newParams);
   };
 
   return (
