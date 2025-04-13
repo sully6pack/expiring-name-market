@@ -136,7 +136,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
         VerificationStatus.VERIFIED,
         undefined,
         undefined,
-        true
+        true  // This is the fifth parameter that should be a boolean
       );
       return true;
     } else {
@@ -155,3 +155,4 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
     return false;
   }
 };
+
