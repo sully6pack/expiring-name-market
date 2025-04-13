@@ -116,12 +116,19 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       .eq('id', domainId)
       .single();
     
-    if (error || !domainData) {
-      console.error("Error fetching domain for verification:", error || "Domain not found");
+    if (error) {
+      console.error("Error fetching domain for verification:", error);
+      return false;
+    }
+    
+    if (!domainData) {
+      console.error("Domain not found with ID:", domainId);
       return false;
     }
     
     const verificationCode = domainData.verification_code;
+    
+    console.log(`Database verification code: ${verificationCode}, Provided code: ${code}`);
     
     if (!verificationCode) {
       console.error("No verification code found for domain");
@@ -141,8 +148,8 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
         domainId, 
         VerificationStatus.VERIFIED,
         undefined,
-        undefined,
-        "true"  // Convert boolean to string as the function expects a string
+        "Domain verified successfully via verification code",
+        "true" // Use string "true" since the function expects a string
       );
       return true;
     } else {

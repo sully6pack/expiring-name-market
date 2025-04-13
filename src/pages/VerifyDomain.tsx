@@ -27,7 +27,7 @@ const VerifyDomain = () => {
       try {
         const { data, error } = await supabase
           .from('domains')
-          .select('name')
+          .select('name, verification_code')
           .eq('id', domainId)
           .single();
         
@@ -37,6 +37,7 @@ const VerifyDomain = () => {
         }
         
         if (data) {
+          console.log("Found domain details:", data);
           setDomainName(data.name);
         }
       } catch (err) {
@@ -69,10 +70,10 @@ const VerifyDomain = () => {
     }
 
     // Validate code before attempting verification
-    if (!verificationCode || verificationCode.trim() === '') {
+    if (!verificationCode || verificationCode.trim() === '' || verificationCode.length < 8) {
       toast({
         title: "Verification Error",
-        description: "Please enter a valid verification code.",
+        description: "Please enter a valid verification code (at least 8 characters).",
         variant: "destructive",
       });
       setVerificationResult("failure");
@@ -86,7 +87,7 @@ const VerifyDomain = () => {
       const result = await verifyDomainWithCode(domainId, verificationCode);
       console.log("Verification result:", result);
       
-      if (result) {
+      if (result === true) {
         setVerificationResult("success");
         toast({
           title: "Domain Verified",
@@ -115,6 +116,11 @@ const VerifyDomain = () => {
 
   const handleManualVerification = () => {
     handleVerification(code);
+  };
+
+  const resetVerification = () => {
+    setVerificationResult(null);
+    setCode("");
   };
 
   return (
