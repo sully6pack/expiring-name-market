@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ListFilter, LayoutGrid } from "lucide-react";
 
 interface DomainFiltersProps {
   searchTerm: string;
@@ -22,6 +25,8 @@ interface DomainFiltersProps {
   setSortOrder: (value: string) => void;
   availableTLDs: string[];
   onSearch: (e: React.FormEvent) => void;
+  isCondensed: boolean;
+  setIsCondensed: (value: boolean) => void;
 }
 
 const DomainFilters = ({
@@ -34,10 +39,12 @@ const DomainFilters = ({
   sortOrder,
   setSortOrder,
   availableTLDs,
-  onSearch
+  onSearch,
+  isCondensed,
+  setIsCondensed
 }: DomainFiltersProps) => {
   return (
-    <div className="mb-8">
+    <div className="mb-8 space-y-4">
       <form onSubmit={onSearch} className="flex flex-col md:flex-row gap-4">
         <div className="flex-grow">
           <Input
@@ -94,6 +101,21 @@ const DomainFilters = ({
         </div>
         <Button type="submit">Search</Button>
       </form>
+      
+      <div className="flex items-center justify-end space-x-2 mt-4">
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="text-gray-500" size={18} />
+          <Switch
+            id="condensed-view"
+            checked={isCondensed}
+            onCheckedChange={setIsCondensed}
+          />
+          <Label htmlFor="condensed-view" className="flex items-center gap-2 cursor-pointer">
+            <ListFilter className="text-gray-500" size={18} />
+            <span className="text-sm">Condensed View</span>
+          </Label>
+        </div>
+      </div>
     </div>
   );
 };

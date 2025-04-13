@@ -1,13 +1,19 @@
 
 import { Domain } from "@/types";
 import DomainCard from "@/components/DomainCard";
+import CondensedDomainsList from "./CondensedDomainsList";
 
 interface DomainsListProps {
   domains: Domain[];
   isLoading?: boolean;
+  isCondensed?: boolean;
 }
 
-const DomainsList = ({ domains, isLoading }: DomainsListProps) => {
+const DomainsList = ({ domains, isLoading, isCondensed = false }: DomainsListProps) => {
+  if (isCondensed) {
+    return <CondensedDomainsList domains={domains} isLoading={isLoading} />;
+  }
+
   if (isLoading) {
     return (
       <div className="text-center py-12">

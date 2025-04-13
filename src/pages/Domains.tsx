@@ -24,6 +24,7 @@ const Domains = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [tldFilter, setTldFilter] = useState<string>(searchParams.get("tld") || "all");
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
+  const [isCondensed, setIsCondensed] = useState<boolean>(false);
   
   const domainsPerPage = 20;
 
@@ -138,10 +139,15 @@ const Domains = () => {
           setSortOrder={setSortOrder}
           availableTLDs={availableTLDs}
           onSearch={handleSearch}
+          isCondensed={isCondensed}
+          setIsCondensed={setIsCondensed}
         />
         
         {/* Domain listings */}
-        <DomainsList domains={currentDomains} />
+        <DomainsList 
+          domains={currentDomains} 
+          isCondensed={isCondensed} 
+        />
         
         {/* Pagination */}
         <DomainsPagination
