@@ -33,9 +33,9 @@ const Index = () => {
     setFeaturedDomains(availableDomains.slice(0, 8));
     setFilteredFeaturedDomains(availableDomains.slice(0, 8));
     
-    setMostLiked(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.MostLiked)).slice(0, 3));
-    setAdminPicks(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.AdminPicks)).slice(0, 3));
-    setSponsored(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.Sponsored)).slice(0, 3));
+    setMostLiked(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.MostLiked)).slice(0, 10));
+    setAdminPicks(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.AdminPicks)).slice(0, 10));
+    setSponsored(filterOutPurchasedDomains(getLeaderboard(LeaderboardType.Sponsored)).slice(0, 10));
     
     setAvailableTLDs(getUniqueTLDs(availableDomains));
     
