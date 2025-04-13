@@ -1,10 +1,7 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 const HeroSection = () => {
-  return (
-    <section className="hero-gradient text-white py-16">
+  return <section className="hero-gradient text-white py-16">
       <div className="container mx-auto px-4 text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-6">
           Find Your Perfect Domain Before It Expires
@@ -19,14 +16,12 @@ const HeroSection = () => {
             </Button>
           </Link>
           <Link to="/dashboard">
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-brand-blue">
+            <Button size="lg" variant="outline" className="border-white hover:bg-white text-brand-blue">
               List Your Domain
             </Button>
           </Link>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;
