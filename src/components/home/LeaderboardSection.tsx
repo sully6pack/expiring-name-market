@@ -1,5 +1,7 @@
 
+import { Link } from "react-router-dom";
 import Leaderboard from "@/components/Leaderboard";
+import { Button } from "@/components/ui/button";
 import { Domain, LeaderboardType } from "@/types";
 
 interface LeaderboardSectionProps {
@@ -29,6 +31,11 @@ const LeaderboardSection = ({ mostLiked, adminPicks, sponsored }: LeaderboardSec
             type={LeaderboardType.Sponsored} 
             domains={sponsored.slice(0, 10)} 
           />
+        </div>
+        <div className="text-center mt-8">
+          <Link to="/domains">
+            <Button variant="outline">View All Domains</Button>
+          </Link>
         </div>
       </div>
     </section>
