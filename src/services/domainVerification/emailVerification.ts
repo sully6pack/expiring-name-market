@@ -103,6 +103,12 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
   try {
     console.log(`Verifying domain ${domainId} with code: ${code}`);
     
+    // Input validation
+    if (!domainId || !code || code.trim() === '') {
+      console.error("Missing required parameters for verification");
+      return false;
+    }
+    
     // Get the domain from the database to check against the stored code
     const { data: domainData, error } = await supabase
       .from('domains')
@@ -128,7 +134,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       return false;
     }
     
-    // Check if the code matches
+    // Check if the code matches - do strict comparison
     if (code === verificationCode) {
       console.log("Verification code matched successfully");
       await updateDomainVerificationStatus(
@@ -136,7 +142,7 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
         VerificationStatus.VERIFIED,
         undefined,
         undefined,
-        "true"  // Fix: Convert boolean to string as the function expects a string
+        "true"  // Convert boolean to string as the function expects a string
       );
       return true;
     } else {

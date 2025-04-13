@@ -67,6 +67,17 @@ const VerifyDomain = () => {
       return;
     }
 
+    // Validate code before attempting verification
+    if (!verificationCode || verificationCode.trim() === '') {
+      toast({
+        title: "Verification Error",
+        description: "Please enter a valid verification code.",
+        variant: "destructive",
+      });
+      setVerificationResult("failure");
+      return;
+    }
+
     setIsVerifying(true);
 
     try {
