@@ -52,6 +52,7 @@ const VerifyDomain = () => {
     const codeFromUrl = searchParams.get("code");
     if (domainId && codeFromUrl && codeFromUrl.length >= 8) {
       console.log("Auto-verifying domain with code from URL", domainId, codeFromUrl);
+      setCode(codeFromUrl);
       handleVerification(codeFromUrl);
     }
   }, [domainId, searchParams]);
