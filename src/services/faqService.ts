@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -132,6 +131,46 @@ export const deleteFAQ = async (id: string): Promise<boolean> => {
   } catch (error) {
     console.error('Error in deleteFAQ:', error);
     toast.error("Failed to delete FAQ");
+    return false;
+  }
+};
+
+// Function to update the specific FAQ about platform fees
+export const updatePlatformFeesFAQ = async (): Promise<boolean> => {
+  try {
+    // First, we need to find the FAQ about platform fees
+    const { data: faqs, error: fetchError } = await supabase
+      .from('faqs')
+      .select('*')
+      .eq('question', 'Is there a fee for using the platform?')
+      .single();
+    
+    if (fetchError || !faqs) {
+      console.error('Error finding FAQ:', fetchError);
+      toast.error("Failed to find FAQ about platform fees");
+      return false;
+    }
+
+    // Update the answer for this specific FAQ
+    const { error } = await supabase
+      .from('faqs')
+      .update({
+        answer: 'We charge $1 to list a domain name to maintain the platform and ensure a secure marketplace experience.',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', faqs.id);
+    
+    if (error) {
+      console.error('Error updating FAQ:', error);
+      toast.error("Failed to update platform fees FAQ");
+      return false;
+    }
+    
+    toast.success("Platform fees FAQ updated successfully");
+    return true;
+  } catch (error) {
+    console.error('Error in updatePlatformFeesFAQ:', error);
+    toast.error("Failed to update platform fees FAQ");
     return false;
   }
 };
