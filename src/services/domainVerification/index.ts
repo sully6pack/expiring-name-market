@@ -38,7 +38,7 @@ export {
 // Function to check domain verification
 export const verifyDomain = async (domain: string): Promise<{isValid: boolean, reason?: string, source?: string} | null> => {
   try {
-    // For demo purposes, we'll do a simple validation first
+    // Basic validation for domain format first
     const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
     if (!domainRegex.test(domain)) {
       console.error(`Invalid domain format: ${domain}`);
@@ -50,40 +50,19 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
     
     console.log(`Verifying domain: ${domain}`);
     
-    // For testing purposes, let's automatically validate certain test domains
-    if (domain.includes('test') || domain.includes('example')) {
-      console.log(`Test domain detected: ${domain}, automatically validating`);
-      return {
-        isValid: true,
-        source: "mock"
-      };
-    }
-
-    // Extract popular domains that are definitely valid
-    const popularDomains = [
-      'google.com', 'facebook.com', 'amazon.com', 'microsoft.com', 
-      'apple.com', 'netflix.com', 'twitter.com', 'linkedin.com',
-      'github.com', 'youtube.com', 'instagram.com', 'wordpress.com'
-    ];
-    
-    if (popularDomains.includes(domain)) {
-      console.log(`Popular domain detected: ${domain}, automatically validating`);
-      return {
-        isValid: true,
-        source: "popular_list"
-      };
-    }
-    
-    // For real domains, attempt DNS verification first before calling the Supabase function
+    // For real verification, we'll perform a DNS lookup to check if the domain exists
     try {
       const dnsResponse = await fetch(`https://dns.google/resolve?name=${domain}&type=A`);
       const dnsData = await dnsResponse.json();
       
-      if (dnsResponse.ok && dnsData) {
+      if (!dnsResponse.ok) {
+        console.error(`DNS API error: ${dnsResponse.status} ${dnsResponse.statusText}`);
+        // Continue to Supabase function as fallback
+      } else {
         // If we get a valid response with answers or authority records, the domain likely exists
         if ((dnsData.Answer && dnsData.Answer.length > 0) || 
             (dnsData.Authority && dnsData.Authority.length > 0)) {
-          console.log(`DNS lookup confirmed domain ${domain} exists via google DNS API`);
+          console.log(`DNS lookup confirmed domain ${domain} exists via Google DNS API`);
           return {
             isValid: true,
             source: "dns_lookup"
@@ -105,7 +84,7 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
       // Continue with Supabase function as fallback
     }
     
-    // Call the Supabase function with more verbose logging
+    // Call the Supabase function for further verification
     console.log(`Initiating Supabase function call for domain: ${domain}`);
     
     const { data, error } = await supabase.functions.invoke('domain-verification', {
@@ -119,7 +98,7 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
     if (error) {
       console.error("Supabase function invocation error:", error);
       
-      // If the function call fails, fallback to a simple DNS check
+      // If the function call fails, fallback to a simple domain format check
       const tld = domain.split('.').pop()?.toLowerCase() || '';
       const domainName = domain.split('.').slice(-2, -1)[0];
       
@@ -160,19 +139,11 @@ export const verifyDomain = async (domain: string): Promise<{isValid: boolean, r
     }
     
     // Function call succeeded
-    if (data.isValid) {
-      return {
-        isValid: true,
-        reason: data.reason,
-        source: data.source
-      };
-    } else {
-      return {
-        isValid: false,
-        reason: data.reason || "verification_failed",
-        source: data.source || "function_success_but_invalid"
-      };
-    }
+    return {
+      isValid: data.isValid || false,
+      reason: data.reason,
+      source: data.source
+    };
   } catch (error) {
     console.error("Unexpected error verifying domain:", error);
     return {

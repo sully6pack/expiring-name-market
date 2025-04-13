@@ -47,6 +47,7 @@ const VerifyDomain = () => {
     fetchDomainDetails();
   }, [domainId]);
 
+  // Auto-verify with code from URL if available
   useEffect(() => {
     const codeFromUrl = searchParams.get("code");
     if (domainId && codeFromUrl && codeFromUrl.length >= 8) {

@@ -3,7 +3,6 @@ import { Domain, VerificationStatus, VerificationMethod } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { updateDomainVerificationStatus } from "@/services/supaDomainService";
 import { getWhoisEmail } from "./verificationUtils";
-import { sendDomainVerificationEmail } from "@/services/supaEmailService";
 
 // Start email verification process
 export const startEmailVerification = async (domain: Domain, userEmail?: string): Promise<boolean> => {
@@ -53,21 +52,24 @@ export const startEmailVerification = async (domain: Domain, userEmail?: string)
     // Create verification URL with domain ID and code
     const verificationUrl = `${window.location.origin}/verify-domain/${domain.id}?code=${domain.verificationCode}`;
     
-    // Send verification email
-    const emailSent = await sendDomainVerificationEmail(
-      emailToUse,
-      domain.name,
-      domain.verificationCode,
-      verificationUrl
-    );
+    // Call Supabase edge function to send email
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: emailToUse,
+        subject: `Verify your domain: ${domain.name}`,
+        domain: domain.name,
+        verificationCode: domain.verificationCode,
+        verificationUrl: verificationUrl
+      }
+    });
     
-    if (!emailSent) {
-      console.error("Failed to send verification email");
+    if (error || !data || !data.success) {
+      console.error("Failed to send verification email:", error || (data?.error || "Unknown error"));
       await updateDomainVerificationStatus(
         domain.id, 
         VerificationStatus.FAILED,
         VerificationMethod.WHOIS_EMAIL,
-        "Failed to send verification email"
+        "Failed to send verification email: " + (error?.message || data?.error || "Unknown error")
       );
       return false;
     }
@@ -131,7 +133,10 @@ export const verifyDomainWithCode = async (domainId: string, code: string): Prom
       console.log("Verification code matched successfully");
       await updateDomainVerificationStatus(
         domainId, 
-        VerificationStatus.VERIFIED
+        VerificationStatus.VERIFIED,
+        undefined,
+        undefined,
+        true
       );
       return true;
     } else {
