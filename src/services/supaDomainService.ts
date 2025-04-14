@@ -184,7 +184,7 @@ export const addDomain = async (domainData: {
         seller_id: domainData.sellerId,
         seller_name: domainData.sellerName,
         likes: 0,
-        price: domainData.price || 99,
+        price: 99, // Fixed price at $99
         is_sponsored: false,
         is_admin_pick: false,
         created_at: new Date().toISOString(),

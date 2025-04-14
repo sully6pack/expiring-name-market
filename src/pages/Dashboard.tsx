@@ -115,7 +115,7 @@ const Dashboard = () => {
         sellerId: currentUser.id,
         sellerName: currentUser.name,
         likes: 0,
-        price: 99,
+        price: 99, // Fixed price at $99
         isSponsored: false,
         isAdminPick: false,
         createdAt: new Date(),

@@ -105,7 +105,7 @@ export const addDomain = (domainData: {
     sellerId: domainData.sellerId,
     sellerName: domainData.sellerName,
     likes: 0,
-    price: domainData.price || 99,
+    price: 99, // Fixed price at $99
     isSponsored: false,
     isAdminPick: false,
     createdAt: new Date(),
