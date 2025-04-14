@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -158,13 +159,25 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       setTimeout(() => {
         setIsProcessingPayment(false);
         setIsPaymentDialogOpen(false);
-        toast.success("Payment processed successfully. Domain listing fee paid.");
+        
+        // Fixed: Use toast({}) instead of toast.success()
+        toast({
+          title: "Payment processed successfully",
+          description: "Domain listing fee paid.",
+        });
         
         submitDomainListing();
       }, 2000);
     } catch (error) {
       console.error("Payment error:", error);
-      toast.error("Payment failed. Please try again.");
+      
+      // Fixed: Use toast({}) with variant: "destructive" instead of toast.error()
+      toast({
+        variant: "destructive",
+        title: "Payment failed",
+        description: "Please try again.",
+      });
+      
       setIsProcessingPayment(false);
     }
   };
