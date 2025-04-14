@@ -8,13 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, AlertCircle, InfoIcon, Loader2, CheckCircle } from "lucide-react";
+import { CalendarIcon, AlertCircle, InfoIcon, Loader2, CheckCircle, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DomainCategory, Domain, VerificationStatus } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { verifyDomain, fetchDomainExpirationDate } from "@/services/domainVerification";
 import { isValidDomainName } from "@/utils/validation";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { stripePromise, formatPriceForStripe } from "@/utils/stripe";
+import { currentUser } from "@/lib/mockData";
 
 interface ListDomainTabProps {
   onSubmit: (domainData: {
@@ -37,6 +40,8 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "verifying" | "success" | "error">("idle");
   const [verificationMessage, setVerificationMessage] = useState("");
   const [expirationSource, setExpirationSource] = useState<"user" | "whois" | null>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { toast } = useToast();
 
   const validateDomain = async () => {
@@ -48,7 +53,6 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       return false;
     }
 
-    // Basic format validation
     if (!isValidDomainName(domainName)) {
       setIsValidationError(true);
       setValidationMessage("Please enter a valid domain name format (e.g., example.com)");
@@ -64,10 +68,8 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     try {
       console.log("Starting domain verification process for:", domainName);
       
-      // First verify the domain exists
       const result = await verifyDomain(domainName);
       
-      // Log the full verification result for debugging
       console.log("Domain verification complete:", result);
       
       if (!result || !result.isValid) {
@@ -112,7 +114,6 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       
       console.log("Domain verification successful for:", domainName);
       
-      // If domain exists, try to fetch its expiration date
       const domainExpirationDate = await fetchDomainExpirationDate(domainName);
       
       if (domainExpirationDate) {
@@ -125,7 +126,6 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
         });
       } else {
         console.log("No expiration date found, using default");
-        // Set a default expiration date 3 months from now
         const defaultDate = new Date();
         defaultDate.setMonth(defaultDate.getMonth() + 3);
         setExpirationDate(defaultDate);
@@ -151,10 +151,38 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     }
   };
 
+  const processPayment = async () => {
+    setIsProcessingPayment(true);
+    
+    try {
+      setTimeout(() => {
+        setIsProcessingPayment(false);
+        setIsPaymentDialogOpen(false);
+        toast.success("Payment processed successfully. Domain listing fee paid.");
+        
+        submitDomainListing();
+      }, 2000);
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("Payment failed. Please try again.");
+      setIsProcessingPayment(false);
+    }
+  };
+  
+  const submitDomainListing = () => {
+    onSubmit({
+      domainName,
+      description,
+      expirationDate,
+      category,
+    });
+    
+    resetForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!domainName) {
       setIsValidationError(true);
       setValidationMessage("Please enter a domain name");
@@ -175,21 +203,12 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     
     setIsValidationError(false);
     
-    // Only proceed if the domain has been verified
     if (verificationStatus !== "success") {
       const verified = await validateDomain();
       if (!verified) return;
     }
     
-    onSubmit({
-      domainName,
-      description,
-      expirationDate,
-      category,
-    });
-    
-    // Reset form after successful submission
-    resetForm();
+    setIsPaymentDialogOpen(true);
   };
   
   const resetForm = () => {
@@ -210,165 +229,215 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>List Your Domain</CardTitle>
-        <CardDescription>
-          Enter details about the domain you're not planning to renew
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {isValidationError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                {validationMessage || "Please fill in all required fields correctly."}
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="domain-name">Domain Name</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="domain-name"
-                placeholder="example.com"
-                value={domainName}
-                onChange={(e) => {
-                  setDomainName(e.target.value);
-                  if (verificationStatus !== "idle") {
-                    setVerificationStatus("idle");
-                    setExpirationSource(null);
-                  }
-                }}
-                required
-                className="flex-1"
-              />
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={validateDomain}
-                disabled={isVerifying || !domainName || verificationStatus === "success"}
-              >
-                {isVerifying ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Verifying
-                  </>
-                ) : verificationStatus === "success" ? (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                    Verified
-                  </>
-                ) : (
-                  "Verify Domain"
-                )}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Include the full domain name with TLD (e.g., .com, .org, .io)
-            </p>
-            
-            {verificationStatus === "error" && (
-              <Alert variant="destructive" className="mt-2">
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>List Your Domain</CardTitle>
+          <CardDescription>
+            Enter details about the domain you're not planning to renew
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {isValidationError && (
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Verification Failed</AlertTitle>
-                <AlertDescription>{verificationMessage}</AlertDescription>
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {validationMessage || "Please fill in all required fields correctly."}
+                </AlertDescription>
               </Alert>
             )}
             
-            {verificationStatus === "success" && (
-              <Alert className="mt-2 bg-green-50 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <AlertTitle>Domain Verified</AlertTitle>
-                <AlertDescription>{verificationMessage}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={(value) => setCategory(value as DomainCategory)}>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(DomainCategory).map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">
-              Select the most appropriate category for your domain
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="expiration-date">Expiration Date</Label>
-              {expirationSource === "whois" && expirationDate && (
-                <div className="flex items-center">
-                  <InfoIcon className="h-4 w-4 text-blue-500 mr-1" />
-                  <span className="text-xs text-blue-500">Fetched from WHOIS data</span>
-                </div>
-              )}
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !expirationDate && "text-muted-foreground"
-                  )}
+            <div className="space-y-2">
+              <Label htmlFor="domain-name">Domain Name</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="domain-name"
+                  placeholder="example.com"
+                  value={domainName}
+                  onChange={(e) => {
+                    setDomainName(e.target.value);
+                    if (verificationStatus !== "idle") {
+                      setVerificationStatus("idle");
+                      setExpirationSource(null);
+                    }
+                  }}
+                  required
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={validateDomain}
+                  disabled={isVerifying || !domainName || verificationStatus === "success"}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {expirationDate ? format(expirationDate, "PPP") : (
-                    <span>Select a date</span>
+                  {isVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying
+                    </>
+                  ) : verificationStatus === "success" ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                      Verified
+                    </>
+                  ) : (
+                    "Verify Domain"
                   )}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={expirationDate}
-                  onSelect={handleExpirationDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Include the full domain name with TLD (e.g., .com, .org, .io)
+              </p>
+              
+              {verificationStatus === "error" && (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Verification Failed</AlertTitle>
+                  <AlertDescription>{verificationMessage}</AlertDescription>
+                </Alert>
+              )}
+              
+              {verificationStatus === "success" && (
+                <Alert className="mt-2 bg-green-50 border-green-200">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <AlertTitle>Domain Verified</AlertTitle>
+                  <AlertDescription>{verificationMessage}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(value) => setCategory(value as DomainCategory)}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(DomainCategory).map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Select the most appropriate category for your domain
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="expiration-date">Expiration Date</Label>
+                {expirationSource === "whois" && expirationDate && (
+                  <div className="flex items-center">
+                    <InfoIcon className="h-4 w-4 text-blue-500 mr-1" />
+                    <span className="text-xs text-blue-500">Fetched from WHOIS data</span>
+                  </div>
+                )}
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !expirationDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {expirationDate ? format(expirationDate, "PPP") : (
+                      <span>Select a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={expirationDate}
+                    onSelect={handleExpirationDateChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe your domain (industry, potential uses, etc.)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                All domains are listed at our fixed price of $99. A $1 listing fee applies.
+              </p>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting || verificationStatus === "verifying" || (verificationStatus !== "success" && domainName.length > 0)}
+              >
+                {isSubmitting ? "Submitting..." : "Proceed to Payment"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Domain Listing Fee</DialogTitle>
+            <DialogDescription>
+              A $1.00 fee is required to list your domain on NotRenewing.com
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Describe your domain (industry, potential uses, etc.)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
+          <div className="py-4">
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Domain Name:</span>
+                <span className="font-medium">{domainName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Listing Fee:</span>
+                <span className="font-medium">$1.00</span>
+              </div>
+              
+              <hr className="my-2" />
+              
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground font-bold">Total:</span>
+                <span className="font-bold text-lg">$1.00</span>
+              </div>
+              
+              <Button 
+                onClick={processPayment} 
+                disabled={isProcessingPayment}
+                className="w-full"
+              >
+                {isProcessingPayment ? "Processing..." : "Pay $1.00 Fee"}
+                {!isProcessingPayment && <CreditCard className="ml-2" size={16} />}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setIsPaymentDialogOpen(false)}
+                disabled={isProcessingPayment}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-4">
-              All domains are listed at our fixed price of $99
-            </p>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting || verificationStatus === "verifying" || (verificationStatus !== "success" && domainName.length > 0)}
-            >
-              {isSubmitting ? "Submitting..." : "List Domain"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

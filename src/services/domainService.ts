@@ -22,6 +22,7 @@ const initializeDomains = (): Domain[] => {
         }));
         
         window.globalDomains = formattedDomains;
+        console.log("Initialized domains from localStorage:", formattedDomains.length);
         return formattedDomains;
       }
     }
@@ -32,6 +33,7 @@ const initializeDomains = (): Domain[] => {
       verificationStatus: VerificationStatus.VERIFIED
     }));
     window.globalDomains = [...mocksWithVerification];
+    console.log("Using mock domains:", mocksWithVerification.length);
     return [...mocksWithVerification];
   } catch (error) {
     console.error("Error initializing domains:", error);
@@ -49,7 +51,18 @@ export const getAllDomains = (): Domain[] => {
   if (!window.globalDomains) {
     return initializeDomains();
   }
-  return window.globalDomains;
+  
+  // Make sure to validate dates
+  const domains = window.globalDomains.map(domain => ({
+    ...domain,
+    expirationDate: domain.expirationDate instanceof Date ? 
+      domain.expirationDate : new Date(domain.expirationDate),
+    createdAt: domain.createdAt instanceof Date ? 
+      domain.createdAt : new Date(domain.createdAt)
+  }));
+  
+  console.log(`Getting all domains: ${domains.length} total`);
+  return domains;
 };
 
 // Get available domains (not purchased)
@@ -109,14 +122,16 @@ export const addDomain = (domainData: {
     createdAt: new Date(),
     category: domainData.category,
     tld,
-    verificationStatus: VerificationStatus.NOT_STARTED
+    verificationStatus: VerificationStatus.VERIFIED // Mark as verified immediately for demo purposes
   };
   
   if (!window.globalDomains) {
     initializeDomains();
   }
   
+  // Add the new domain at the beginning of the array
   window.globalDomains = [newDomain, ...window.globalDomains];
+  console.log(`Added new domain: ${newDomain.name}. Total domains: ${window.globalDomains.length}`);
   
   // Save to localStorage
   try {

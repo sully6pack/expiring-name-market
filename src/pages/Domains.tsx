@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import { mockDomains } from "@/lib/mockData";
 import { Domain } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
@@ -11,6 +9,7 @@ import { toast } from "sonner";
 import DomainsList from "@/components/domains/DomainsList";
 import DomainFilters from "@/components/domains/DomainFilters";
 import DomainsPagination from "@/components/domains/DomainsPagination";
+import { getAllDomains } from "@/services/domainService";
 
 const Domains = () => {
   const location = useLocation();
@@ -29,10 +28,13 @@ const Domains = () => {
   const domainsPerPage = 20;
 
   useEffect(() => {
-    // Load domains directly from mockDomains
-    console.log("Domains page: Loading domains from mockDomains");
+    // Load domains from the domain service instead of directly from mockDomains
+    console.log("Domains page: Loading domains from domainService");
     
-    const validDomains = filterValidDomains([...mockDomains]);
+    // Get all domains from our service
+    const allDomains = getAllDomains();
+    
+    const validDomains = filterValidDomains([...allDomains]);
     
     // Filter out purchased domains
     const availableDomains = filterOutPurchasedDomains(validDomains);
@@ -48,7 +50,7 @@ const Domains = () => {
     } else {
       toast.error("Failed to load any domains");
     }
-  }, []);
+  }, [location.pathname]); // Reload whenever the path changes to refresh domains
 
   // Parse URL parameters when the location changes
   useEffect(() => {

@@ -1,23 +1,21 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockDomains, currentUser } from "@/lib/mockData";
+import { currentUser } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
 import { filterOutPurchasedDomains, logPurchasedDomains } from "@/utils/purchaseUtils";
+import { getAllDomains, addDomain, deleteDomain } from "@/services/domainService";
 
 // Import tab components
 import MyDomainsTab from "@/components/dashboard/MyDomainsTab";
 import ListDomainTab from "@/components/dashboard/ListDomainTab";
 import InterestedBuyersTab from "@/components/dashboard/InterestedBuyersTab";
 import AccountSettingsTab from "@/components/dashboard/AccountSettingsTab";
-
-if (!window.globalDomains) {
-  window.globalDomains = [...mockDomains];
-}
 
 const Dashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,12 +28,12 @@ const Dashboard = () => {
     console.log("Dashboard: Loading domains...");
     logPurchasedDomains();
     
-    if (!window.globalDomains) {
-      window.globalDomains = [...mockDomains];
-    }
+    // Get all domains from our domain service
+    const allDomains = getAllDomains();
+    console.log(`Dashboard: Found ${allDomains.length} total domains`);
     
-    // Get user's domains that are not purchased
-    const userDomains = window.globalDomains.filter(domain => domain.sellerId === currentUser.id);
+    // Get user's domains
+    const userDomains = allDomains.filter(domain => domain.sellerId === currentUser.id);
     console.log(`Dashboard: Found ${userDomains.length} domains owned by current user`);
     
     // Make sure to only show domains that haven't been purchased
@@ -45,12 +43,12 @@ const Dashboard = () => {
     setMyDomains(availableDomains);
     setInterestedBuyers([
       { 
-        domainId: mockDomains[0].id, 
+        domainId: allDomains[0]?.id || "domain1", 
         buyerName: "John Doe", 
         email: "john@example.com" 
       },
       { 
-        domainId: mockDomains[2].id, 
+        domainId: allDomains[2]?.id || "domain3", 
         buyerName: "Alice Williams", 
         email: "alice@example.com" 
       },
@@ -89,16 +87,7 @@ const Dashboard = () => {
     }
 
     setTimeout(() => {
-      if (!window.globalDomains) {
-        window.globalDomains = [...mockDomains];
-      }
-      
       console.log(`Adding new domain: ${domainData.domainName}`);
-      
-      toast({
-        title: "Domain Listed",
-        description: `${domainData.domainName} has been successfully listed`,
-      });
       
       // Set a default expiration date if one wasn't provided
       const expirationDate = domainData.expirationDate || (() => {
@@ -107,53 +96,46 @@ const Dashboard = () => {
         return date;
       })();
       
-      const newDomain: Domain = {
-        id: `domain${Math.random().toString(36).substring(7)}`,
+      // Use our domain service to add the new domain
+      const newDomain = addDomain({
         name: domainData.domainName,
-        expirationDate,
         description: domainData.description,
+        expirationDate,
         sellerId: currentUser.id,
         sellerName: currentUser.name,
-        likes: 0,
-        price: 99, // Fixed price at $99
-        isSponsored: false,
-        isAdminPick: false,
-        createdAt: new Date(),
-        category: domainData.category,
-        tld,
-        verificationStatus: VerificationStatus.NOT_STARTED,
-      };
+        category: domainData.category
+      });
       
-      window.globalDomains = [...window.globalDomains, newDomain];
+      toast({
+        title: "Domain Listed",
+        description: `${domainData.domainName} has been successfully listed`,
+      });
+      
+      // Update local state
       setMyDomains(prevDomains => [newDomain, ...prevDomains]);
       setIsSubmitting(false);
       
-      try {
-        localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
-        console.log(`Domain ${domainData.domainName} added successfully. Total domains: ${window.globalDomains.length}`);
-      } catch (error) {
-        console.error('Error saving domains to localStorage:', error);
-      }
     }, 1000);
   };
 
   const handleDeleteDomain = (domainToDelete: Domain) => {
-    if (!window.globalDomains) {
-      window.globalDomains = [...mockDomains];
-    }
+    // Use our domain service to delete the domain
+    const success = deleteDomain(domainToDelete.id);
     
-    // Filter out the domain to delete
-    window.globalDomains = window.globalDomains.filter(domain => domain.id !== domainToDelete.id);
-    
-    // Update local state
-    setMyDomains(prevDomains => prevDomains.filter(domain => domain.id !== domainToDelete.id));
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('globalDomains', JSON.stringify(window.globalDomains));
-      console.log(`Domain ${domainToDelete.name} removed. Remaining domains: ${window.globalDomains.length}`);
-    } catch (error) {
-      console.error('Error saving domains to localStorage:', error);
+    if (success) {
+      // Update local state
+      setMyDomains(prevDomains => prevDomains.filter(domain => domain.id !== domainToDelete.id));
+      
+      toast({
+        title: "Domain Removed",
+        description: `${domainToDelete.name} has been removed from your listings`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to remove ${domainToDelete.name}. Please try again.`,
+      });
     }
   };
 
@@ -189,7 +171,7 @@ const Dashboard = () => {
           </TabsContent>
           
           <TabsContent value="interested-buyers">
-            <InterestedBuyersTab buyers={interestedBuyers} domains={mockDomains} />
+            <InterestedBuyersTab buyers={interestedBuyers} domains={getAllDomains()} />
           </TabsContent>
           
           <TabsContent value="account">
