@@ -51,7 +51,7 @@ const Domains = () => {
           return;
         }
         
-        // Convert database format to app format
+        // Convert database format to app format with proper enum conversion
         const formattedDomains: Domain[] = data.map(item => ({
           id: item.id,
           name: item.name,
@@ -64,9 +64,10 @@ const Domains = () => {
           isSponsored: item.is_sponsored || false,
           isAdminPick: item.is_admin_pick || false,
           createdAt: new Date(item.created_at),
-          category: item.category as DomainCategory,
+          // Convert string category to DomainCategory enum
+          category: validateDomainCategory(item.category),
           tld: item.tld,
-          verificationStatus: item.verification_status as VerificationStatus,
+          verificationStatus: validateVerificationStatus(item.verification_status),
           isVerified: item.is_verified || false
         }));
         
@@ -91,6 +92,22 @@ const Domains = () => {
     
     fetchDomains();
   }, [location.pathname]); // Reload whenever the path changes to refresh domains
+
+  // Helper function to validate and convert category string to DomainCategory enum
+  const validateDomainCategory = (category: string): DomainCategory => {
+    if (Object.values(DomainCategory).includes(category as DomainCategory)) {
+      return category as DomainCategory;
+    }
+    return DomainCategory.Other; // Default to "Other" if category is not valid
+  };
+
+  // Helper function to validate and convert verification status string to VerificationStatus enum
+  const validateVerificationStatus = (status: string): VerificationStatus => {
+    if (Object.values(VerificationStatus).includes(status as VerificationStatus)) {
+      return status as VerificationStatus;
+    }
+    return VerificationStatus.NOT_STARTED; // Default if not valid
+  };
 
   // Parse URL parameters when the location changes
   useEffect(() => {

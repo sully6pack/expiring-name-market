@@ -7,7 +7,7 @@ import QuickSearch from "@/components/home/QuickSearch";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FeaturedDomains from "@/components/home/FeaturedDomains";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
-import { Domain, LeaderboardType } from "@/types";
+import { Domain, LeaderboardType, DomainCategory, VerificationStatus } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
 import { toast } from "sonner";
@@ -45,7 +45,7 @@ const Index = () => {
           return;
         }
         
-        // Convert database format to app format
+        // Convert database format to app format with proper enum conversion
         const formattedDomains: Domain[] = data.map(item => ({
           id: item.id,
           name: item.name,
@@ -58,9 +58,10 @@ const Index = () => {
           isSponsored: item.is_sponsored || false,
           isAdminPick: item.is_admin_pick || false,
           createdAt: new Date(item.created_at),
-          category: item.category,
+          // Convert string category to DomainCategory enum
+          category: validateDomainCategory(item.category),
           tld: item.tld,
-          verificationStatus: item.verification_status,
+          verificationStatus: validateVerificationStatus(item.verification_status),
           isVerified: item.is_verified || false
         }));
         
@@ -88,6 +89,22 @@ const Index = () => {
     
     loadDomains();
   }, []);
+
+  // Helper function to validate and convert category string to DomainCategory enum
+  const validateDomainCategory = (category: string): DomainCategory => {
+    if (Object.values(DomainCategory).includes(category as DomainCategory)) {
+      return category as DomainCategory;
+    }
+    return DomainCategory.Other; // Default to "Other" if category is not valid
+  };
+
+  // Helper function to validate and convert verification status string to VerificationStatus enum
+  const validateVerificationStatus = (status: string): VerificationStatus => {
+    if (Object.values(VerificationStatus).includes(status as VerificationStatus)) {
+      return status as VerificationStatus;
+    }
+    return VerificationStatus.NOT_STARTED; // Default if not valid
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
