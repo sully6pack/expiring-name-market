@@ -7,6 +7,7 @@ export const recordDomainPurchase = async (
   buyerId: string,
   sellerId: string,
   amount: number,
+  platformFee: number = 1, // Default platform fee to $1
   paymentIntentId?: string
 ): Promise<boolean> => {
   try {
@@ -18,6 +19,8 @@ export const recordDomainPurchase = async (
         buyer_id: buyerId,
         seller_id: sellerId,
         amount,
+        platform_fee: platformFee,
+        total_amount: amount + platformFee,
         status: paymentIntentId ? 'completed' : 'pending',
         payment_intent_id: paymentIntentId,
         created_at: new Date().toISOString(),

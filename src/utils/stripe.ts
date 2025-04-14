@@ -29,6 +29,7 @@ export const handleDomainPurchase = async (domain: {
   id: string;
   name: string;
   price: number;
+  platformFee?: number;
 }): Promise<PurchaseResponse> => {
   try {
     const user = getCurrentUser();
@@ -45,20 +46,30 @@ export const handleDomainPurchase = async (domain: {
       throw new Error("Failed to load Stripe");
     }
 
-    // In a production app, you would call your backend API here
+    // Default platform fee to $1 if not provided
+    const platformFee = domain.platformFee !== undefined ? domain.platformFee : 1;
+    const totalAmount = domain.price + platformFee;
+
+    // In a real implementation, this would call your backend API
     // to create a Checkout Session and return the session ID
     // Mock example:
     // const response = await fetch('/api/create-checkout-session', {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ domainId: domain.id, userId: user.id }),
+    //   body: JSON.stringify({ 
+    //     domainId: domain.id, 
+    //     userId: user.id, 
+    //     platformFee: platformFee,
+    //     domainPrice: domain.price,
+    //     totalAmount: totalAmount
+    //   }),
     // });
     // const { sessionId } = await response.json();
     // const result = await stripe.redirectToCheckout({ sessionId });
     
     // For demo purposes, we'll redirect to the checkout page
     // which will handle the mock payment flow
-    console.log(`Processing purchase for domain: ${domain.name}, Price: ${domain.price}, User: ${user.email}`);
+    console.log(`Processing purchase for domain: ${domain.name}, Price: ${domain.price}, Platform Fee: ${platformFee}, Total: ${totalAmount}, User: ${user.email}`);
     
     // Simulating successful redirect to checkout
     return {
@@ -161,4 +172,3 @@ export const completePurchaseTransaction = async (domain: Domain): Promise<boole
 
 // Export the key for components that need to check it
 export const getStripePublishableKey = (): string => STRIPE_PUBLISHABLE_KEY;
-

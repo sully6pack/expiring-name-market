@@ -1,4 +1,3 @@
-
 import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { mockDomains } from "@/lib/mockData";
 import { getPurchasedDomains, isDomainPurchased } from "@/utils/purchaseUtils";
@@ -93,7 +92,6 @@ export const addDomain = (domainData: {
   sellerId: string;
   sellerName: string;
   category: DomainCategory;
-  price?: number;
 }): Domain => {
   const tld = extractTLD(domainData.name) || "";
   

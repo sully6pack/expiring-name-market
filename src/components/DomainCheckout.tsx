@@ -19,6 +19,10 @@ const DomainCheckout = ({ domain, isOpen, onClose }: DomainCheckoutProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
+  // Platform fee amount
+  const platformFee = 1;
+  const totalAmount = domain.price + platformFee;
+
   const handleCheckout = async () => {
     try {
       setIsProcessing(true);
@@ -27,7 +31,8 @@ const DomainCheckout = ({ domain, isOpen, onClose }: DomainCheckoutProps) => {
       const result = await handleDomainPurchase({
         id: domain.id,
         name: domain.name,
-        price: domain.price
+        price: domain.price,
+        platformFee: platformFee
       });
       
       if (result.success && result.url) {
@@ -62,11 +67,20 @@ const DomainCheckout = ({ domain, isOpen, onClose }: DomainCheckoutProps) => {
               <span className="font-medium">{domain.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Price:</span>
-              <span className="font-bold text-lg">{formatPrice(domain.price)}</span>
+              <span className="text-muted-foreground">Domain Price:</span>
+              <span className="font-medium">{formatPrice(domain.price)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">NotRenewing.com Fee:</span>
+              <span className="font-medium">{formatPrice(platformFee)}</span>
             </div>
             
             <hr className="my-2" />
+            
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground font-bold">Total:</span>
+              <span className="font-bold text-lg">{formatPrice(totalAmount)}</span>
+            </div>
             
             <Button 
               onClick={handleCheckout} 

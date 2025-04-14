@@ -19,6 +19,9 @@ const Checkout = () => {
   const { domainId } = useParams();
   const navigate = useNavigate();
   
+  // Platform fee amount
+  const platformFee = 1;
+  
   useEffect(() => {
     // In a real app, you'd fetch this from an API
     const foundDomain = mockDomains.find(d => d.id === domainId);
@@ -75,6 +78,9 @@ const Checkout = () => {
     );
   }
   
+  // Calculate total amount with platform fee
+  const totalAmount = domain.price + platformFee;
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -114,10 +120,18 @@ const Checkout = () => {
                   <span className="text-muted-foreground">Seller:</span>
                   <span>{domain.sellerName}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Domain Price:</span>
+                  <span>{formatPrice(domain.price)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">NotRenewing.com Fee:</span>
+                  <span>{formatPrice(platformFee)}</span>
+                </div>
                 <hr />
                 <div className="flex justify-between">
                   <span className="font-bold">Total:</span>
-                  <span className="font-bold text-lg">{formatPrice(domain.price)}</span>
+                  <span className="font-bold text-lg">{formatPrice(totalAmount)}</span>
                 </div>
               </div>
             </CardContent>
@@ -160,7 +174,7 @@ const Checkout = () => {
                 onClick={handleSubmit} 
                 disabled={isLoading}
               >
-                {isLoading ? "Processing..." : "Complete Purchase"}
+                {isLoading ? "Processing..." : `Complete Purchase (${formatPrice(totalAmount)})`}
                 {!isLoading && <CreditCard className="ml-2" size={16} />}
               </Button>
             </CardFooter>

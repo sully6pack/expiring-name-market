@@ -26,4 +26,19 @@ CREATE TABLE domains (
   purchase_date TIMESTAMP WITH TIME ZONE
 );
 
+-- Create transactions table with platform fee
+CREATE TABLE IF NOT EXISTS transactions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  domain_id UUID REFERENCES domains(id),
+  buyer_id UUID REFERENCES users(id),
+  seller_id UUID REFERENCES users(id),
+  amount DECIMAL(10, 2) NOT NULL, -- Domain price
+  platform_fee DECIMAL(10, 2) NOT NULL DEFAULT 1.00, -- Default $1 platform fee
+  total_amount DECIMAL(10, 2) NOT NULL, -- Total amount (amount + platform_fee)
+  status TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  payment_intent_id TEXT
+);
+
 -- ... keep existing code (remaining tables creation and RLS policies)
