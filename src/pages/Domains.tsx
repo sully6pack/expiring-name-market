@@ -1,15 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import { Domain } from "@/types";
+import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
-import { filterOutPurchasedDomains } from "@/utils/purchaseUtils";
 import { toast } from "sonner";
 import DomainsList from "@/components/domains/DomainsList";
 import DomainFilters from "@/components/domains/DomainFilters";
 import DomainsPagination from "@/components/domains/DomainsPagination";
-import { getAllDomains } from "@/services/domainService";
+import { supabase } from "@/integrations/supabase/client";
 
 const Domains = () => {
   const location = useLocation();
@@ -24,32 +24,68 @@ const Domains = () => {
   const [tldFilter, setTldFilter] = useState<string>(searchParams.get("tld") || "all");
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
   const [isCondensed, setIsCondensed] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
   const domainsPerPage = 20;
 
   useEffect(() => {
-    // Load domains from the domain service instead of directly from mockDomains
-    console.log("Domains page: Loading domains from domainService");
+    const fetchDomains = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch verified domains from Supabase (those available for purchase)
+        const { data, error } = await supabase
+          .from('domains')
+          .select('*')
+          .eq('is_verified', true)
+          .is('buyer_id', null)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching domains:", error);
+          toast.error("Failed to load domains");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Convert database format to app format
+        const formattedDomains: Domain[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          expirationDate: new Date(item.expiration_date),
+          sellerId: item.seller_id,
+          sellerName: item.seller_name,
+          likes: item.likes || 0,
+          price: item.price,
+          isSponsored: item.is_sponsored || false,
+          isAdminPick: item.is_admin_pick || false,
+          createdAt: new Date(item.created_at),
+          category: item.category as DomainCategory,
+          tld: item.tld,
+          verificationStatus: item.verification_status as VerificationStatus,
+          isVerified: item.is_verified || false
+        }));
+        
+        const validDomains = filterValidDomains(formattedDomains);
+        
+        setDomains(validDomains);
+        setFilteredDomains(validDomains);
+        setAvailableTLDs(getUniqueTLDs(validDomains));
+        
+        if (validDomains.length > 0) {
+          toast.success(`Loaded ${validDomains.length} domains`);
+        } else {
+          toast.info("No domains available at the moment");
+        }
+      } catch (error) {
+        console.error("Error in fetchDomains:", error);
+        toast.error("An unexpected error occurred while loading domains");
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Get all domains from our service
-    const allDomains = getAllDomains();
-    
-    const validDomains = filterValidDomains([...allDomains]);
-    
-    // Filter out purchased domains
-    const availableDomains = filterOutPurchasedDomains(validDomains);
-    
-    console.log("Domains page: Valid domains count:", availableDomains.length);
-    
-    setDomains(availableDomains);
-    setFilteredDomains(availableDomains);
-    setAvailableTLDs(getUniqueTLDs(availableDomains));
-    
-    if (availableDomains.length > 0) {
-      toast.success(`Loaded ${availableDomains.length} domains`);
-    } else {
-      toast.error("Failed to load any domains");
-    }
+    fetchDomains();
   }, [location.pathname]); // Reload whenever the path changes to refresh domains
 
   // Parse URL parameters when the location changes
@@ -149,6 +185,7 @@ const Domains = () => {
         <DomainsList 
           domains={currentDomains} 
           isCondensed={isCondensed} 
+          isLoading={isLoading}
         />
         
         {/* Pagination */}

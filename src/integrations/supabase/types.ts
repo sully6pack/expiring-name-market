@@ -9,6 +9,93 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      domains: {
+        Row: {
+          buyer_id: string | null
+          category: string
+          created_at: string | null
+          description: string
+          expiration_date: string
+          id: string
+          is_admin_pick: boolean | null
+          is_sponsored: boolean | null
+          is_verified: boolean | null
+          likes: number | null
+          name: string
+          price: number
+          purchase_date: string | null
+          seller_id: string | null
+          seller_name: string
+          tld: string
+          verification_code: string | null
+          verification_date: string | null
+          verification_method: string | null
+          verification_notes: string | null
+          verification_status: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          category: string
+          created_at?: string | null
+          description: string
+          expiration_date: string
+          id?: string
+          is_admin_pick?: boolean | null
+          is_sponsored?: boolean | null
+          is_verified?: boolean | null
+          likes?: number | null
+          name: string
+          price?: number
+          purchase_date?: string | null
+          seller_id?: string | null
+          seller_name: string
+          tld: string
+          verification_code?: string | null
+          verification_date?: string | null
+          verification_method?: string | null
+          verification_notes?: string | null
+          verification_status?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string
+          expiration_date?: string
+          id?: string
+          is_admin_pick?: boolean | null
+          is_sponsored?: boolean | null
+          is_verified?: boolean | null
+          likes?: number | null
+          name?: string
+          price?: number
+          purchase_date?: string | null
+          seller_id?: string | null
+          seller_name?: string
+          tld?: string
+          verification_code?: string | null
+          verification_date?: string | null
+          verification_method?: string | null
+          verification_notes?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domains_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domains_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faqs: {
         Row: {
           answer: string

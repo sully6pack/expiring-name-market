@@ -3,13 +3,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { currentUser } from "@/lib/mockData";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
-import { filterOutPurchasedDomains, logPurchasedDomains } from "@/utils/purchaseUtils";
-import { getAllDomains, addDomain, deleteDomain } from "@/services/domainService";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import tab components
 import MyDomainsTab from "@/components/dashboard/MyDomainsTab";
@@ -21,41 +19,91 @@ const Dashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myDomains, setMyDomains] = useState<Domain[]>([]);
   const [interestedBuyers, setInterestedBuyers] = useState<{ domainId: string; buyerName: string; email: string }[]>([]);
-  const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const navigate = useNavigate();
 
+  // Check if user is authenticated
   useEffect(() => {
-    console.log("Dashboard: Loading domains...");
-    logPurchasedDomains();
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      if (!data.session) {
+        toast.error("Please sign in to access your dashboard");
+        navigate("/");
+        return;
+      }
+      
+      // Get user profile
+      const { data: userData } = await supabase.auth.getUser();
+      setCurrentUser(userData.user);
+      
+      // Load user's domains
+      await fetchUserDomains(userData.user?.id);
+    };
     
-    // Get all domains from our domain service
-    const allDomains = getAllDomains();
-    console.log(`Dashboard: Found ${allDomains.length} total domains`);
+    checkAuth();
+  }, [navigate]);
+  
+  const fetchUserDomains = async (userId: string | undefined) => {
+    if (!userId) return;
     
-    // Get user's domains
-    const userDomains = allDomains.filter(domain => domain.sellerId === currentUser.id);
-    console.log(`Dashboard: Found ${userDomains.length} domains owned by current user`);
-    
-    // Make sure to only show domains that haven't been purchased
-    const availableDomains = filterOutPurchasedDomains(userDomains);
-    console.log(`Dashboard: ${availableDomains.length} domains available after filtering out purchased domains`);
-    
-    setMyDomains(availableDomains);
-    setInterestedBuyers([
-      { 
-        domainId: allDomains[0]?.id || "domain1", 
-        buyerName: "John Doe", 
-        email: "john@example.com" 
-      },
-      { 
-        domainId: allDomains[2]?.id || "domain3", 
-        buyerName: "Alice Williams", 
-        email: "alice@example.com" 
-      },
-    ]);
-  }, []);
+    try {
+      const { data, error } = await supabase
+        .from('domains')
+        .select('*')
+        .eq('seller_id', userId)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error fetching domains:", error);
+        toast.error("Failed to load your domains");
+        return;
+      }
+      
+      // Convert database format to app format
+      const formattedDomains: Domain[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        expirationDate: new Date(item.expiration_date),
+        sellerId: item.seller_id,
+        sellerName: item.seller_name,
+        likes: item.likes || 0,
+        price: item.price,
+        isSponsored: item.is_sponsored || false,
+        isAdminPick: item.is_admin_pick || false,
+        createdAt: new Date(item.created_at),
+        category: item.category as DomainCategory,
+        tld: item.tld,
+        verificationStatus: item.verification_status as VerificationStatus,
+        isVerified: item.is_verified || false
+      }));
+      
+      setMyDomains(formattedDomains);
+      console.log(`Loaded ${formattedDomains.length} domains from Supabase`);
+      
+      // For demo purposes, set some interested buyers
+      if (formattedDomains.length > 0) {
+        setInterestedBuyers([
+          { 
+            domainId: formattedDomains[0]?.id || "domain1", 
+            buyerName: "John Doe", 
+            email: "john@example.com" 
+          },
+          { 
+            domainId: formattedDomains.length > 1 ? formattedDomains[1].id : "domain2", 
+            buyerName: "Alice Williams", 
+            email: "alice@example.com" 
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error in fetchUserDomains:", error);
+      toast.error("An unexpected error occurred while loading domains");
+    }
+  };
 
-  const handleSubmitDomain = (domainData: {
+  const handleSubmitDomain = async (domainData: {
     domainName: string;
     description: string;
     expirationDate: Date | undefined;
@@ -65,11 +113,7 @@ const Dashboard = () => {
 
     // Only validate expiration date if one was provided
     if (domainData.expirationDate && !isDomainValid(domainData.expirationDate)) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Expiration Date",
-        description: "Domain must be expiring within the next 90 days and not more than 15 days past expiration",
-      });
+      toast.error("Domain must be expiring within the next 90 days and not more than 15 days past expiration");
       setIsSubmitting(false);
       return;
     }
@@ -77,18 +121,18 @@ const Dashboard = () => {
     const tld = extractTLD(domainData.domainName);
     
     if (!tld) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Domain",
-        description: "Please enter a valid domain name with a TLD (e.g., .com, .org, .io)",
-      });
+      toast.error("Please enter a valid domain name with a TLD (e.g., .com, .org, .io)");
+      setIsSubmitting(false);
+      return;
+    }
+    
+    if (!currentUser) {
+      toast.error("You must be logged in to list a domain");
       setIsSubmitting(false);
       return;
     }
 
-    setTimeout(() => {
-      console.log(`Adding new domain: ${domainData.domainName}`);
-      
+    try {
       // Set a default expiration date if one wasn't provided
       const expirationDate = domainData.expirationDate || (() => {
         const date = new Date();
@@ -96,52 +140,94 @@ const Dashboard = () => {
         return date;
       })();
       
-      // Use our domain service to add the new domain
-      const newDomain = addDomain({
-        name: domainData.domainName,
-        description: domainData.description,
-        expirationDate,
-        sellerId: currentUser.id,
-        sellerName: currentUser.name,
-        category: domainData.category
-      });
+      // Insert domain into Supabase
+      const { data, error } = await supabase
+        .from('domains')
+        .insert({
+          name: domainData.domainName,
+          description: domainData.description,
+          expiration_date: expirationDate.toISOString(),
+          seller_id: currentUser.id,
+          seller_name: currentUser.email.split('@')[0],
+          price: 99.00, // Fixed price
+          category: domainData.category,
+          tld: tld,
+          verification_status: 'NOT_STARTED',
+          is_verified: false
+        })
+        .select()
+        .single();
       
-      toast({
-        title: "Domain Listed",
-        description: `${domainData.domainName} has been successfully listed`,
-      });
+      if (error) {
+        console.error("Error saving domain:", error);
+        toast.error(error.message || "Failed to save domain");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Convert to our Domain type
+      const newDomain: Domain = {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        expirationDate: new Date(data.expiration_date),
+        sellerId: data.seller_id,
+        sellerName: data.seller_name,
+        likes: data.likes || 0,
+        price: data.price,
+        isSponsored: data.is_sponsored || false,
+        isAdminPick: data.is_admin_pick || false,
+        createdAt: new Date(data.created_at),
+        category: data.category as DomainCategory,
+        tld: data.tld,
+        verificationStatus: data.verification_status as VerificationStatus,
+        isVerified: data.is_verified || false
+      };
       
       // Update local state
       setMyDomains(prevDomains => [newDomain, ...prevDomains]);
-      setIsSubmitting(false);
       
-    }, 1000);
+      toast.success(`${domainData.domainName} has been successfully listed`);
+    } catch (error: any) {
+      console.error("Error in handleSubmitDomain:", error);
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteDomain = (domainToDelete: Domain) => {
-    // Use our domain service to delete the domain
-    const success = deleteDomain(domainToDelete.id);
-    
-    if (success) {
+  const handleDeleteDomain = async (domainToDelete: Domain) => {
+    try {
+      const { error } = await supabase
+        .from('domains')
+        .delete()
+        .eq('id', domainToDelete.id);
+      
+      if (error) {
+        console.error("Error deleting domain:", error);
+        toast.error(error.message || `Failed to remove ${domainToDelete.name}`);
+        return;
+      }
+      
       // Update local state
       setMyDomains(prevDomains => prevDomains.filter(domain => domain.id !== domainToDelete.id));
       
-      toast({
-        title: "Domain Removed",
-        description: `${domainToDelete.name} has been removed from your listings`,
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to remove ${domainToDelete.name}. Please try again.`,
-      });
+      toast.success(`${domainToDelete.name} has been removed from your listings`);
+    } catch (error) {
+      console.error("Error in handleDeleteDomain:", error);
+      toast.error(`Failed to remove ${domainToDelete.name}. Please try again.`);
     }
   };
 
   if (!currentUser) {
-    navigate("/");
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <h2 className="text-xl font-semibold mb-2">Loading your dashboard...</h2>
+          <p className="text-muted-foreground">Please wait while we retrieve your information.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -171,7 +257,7 @@ const Dashboard = () => {
           </TabsContent>
           
           <TabsContent value="interested-buyers">
-            <InterestedBuyersTab buyers={interestedBuyers} domains={getAllDomains()} />
+            <InterestedBuyersTab buyers={interestedBuyers} domains={myDomains} />
           </TabsContent>
           
           <TabsContent value="account">
@@ -182,11 +268,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-declare global {
-  interface Window {
-    globalDomains: Domain[];
-  }
-}
 
 export default Dashboard;
