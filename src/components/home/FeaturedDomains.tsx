@@ -6,9 +6,23 @@ import { Domain } from "@/types";
 
 interface FeaturedDomainsProps {
   domains: Domain[];
+  isLoading?: boolean;
 }
 
-const FeaturedDomains = ({ domains }: FeaturedDomainsProps) => {
+const FeaturedDomains = ({ domains, isLoading = false }: FeaturedDomainsProps) => {
+  if (isLoading) {
+    return (
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8">Featured Domains</h2>
+          <div className="text-center py-8">
+            <p className="text-lg text-gray-500">Loading domains...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">

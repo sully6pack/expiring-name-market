@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { DomainCategory } from "@/types";
+import { mockDomains } from "@/lib/mockData";
 
 // Function to seed initial domains for demonstration
 export const seedInitialDomains = async () => {
@@ -37,81 +38,40 @@ export const seedInitialDomains = async () => {
     }
     
     const adminId = adminData.id;
-    const exampleDomains = [
-      {
-        name: "example.com",
-        description: "Premium generic domain suitable for any business.",
-        expiration_date: new Date(Date.now() + (60 * 24 * 60 * 60 * 1000)).toISOString(), // 60 days from now
-        seller_id: adminId,
-        seller_name: "Admin",
-        price: 99.00,
-        category: DomainCategory.Business,
-        tld: "com",
-        verification_status: "VERIFIED",
-        is_verified: true,
-        is_admin_pick: true
-      },
-      {
-        name: "bestpizza.io",
-        description: "Perfect domain for a pizza restaurant or delivery service.",
-        expiration_date: new Date(Date.now() + (45 * 24 * 60 * 60 * 1000)).toISOString(), // 45 days from now
-        seller_id: adminId,
-        seller_name: "Admin",
-        price: 99.00,
-        category: DomainCategory.Food,
-        tld: "io",
-        verification_status: "VERIFIED",
-        is_verified: true,
-        is_sponsored: true
-      },
-      {
-        name: "techstart.ai",
-        description: "Modern domain for AI and tech startups.",
-        expiration_date: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString(), // 30 days from now
-        seller_id: adminId,
-        seller_name: "Admin",
-        price: 99.00,
-        category: DomainCategory.Technology,
-        tld: "ai",
-        verification_status: "VERIFIED",
-        is_verified: true
-      },
-      {
-        name: "greenearth.org",
-        description: "Ideal for environmental organizations and non-profits.",
-        expiration_date: new Date(Date.now() + (75 * 24 * 60 * 60 * 1000)).toISOString(), // 75 days from now
-        seller_id: adminId,
-        seller_name: "Admin",
-        price: 99.00,
-        category: DomainCategory.Other, // Changed from Environmental to Other as Environmental doesn't exist in the enum
-        tld: "org",
-        verification_status: "VERIFIED",
-        is_verified: true
-      },
-      {
-        name: "cryptotrader.finance",
-        description: "Perfect domain for cryptocurrency and trading platforms.",
-        expiration_date: new Date(Date.now() + (50 * 24 * 60 * 60 * 1000)).toISOString(), // 50 days from now
-        seller_id: adminId,
-        seller_name: "Admin",
-        price: 99.00,
-        category: DomainCategory.Finance,
-        tld: "finance",
-        verification_status: "VERIFIED",
-        is_verified: true
-      }
-    ];
     
-    const { error: insertError } = await supabase
-      .from('domains')
-      .insert(exampleDomains);
+    // Convert mock domains to database format
+    const domainsToInsert = mockDomains.map(domain => ({
+      name: domain.name,
+      description: domain.description,
+      expiration_date: domain.expirationDate.toISOString(),
+      seller_id: adminId,
+      seller_name: "Admin",
+      price: domain.price,
+      category: domain.category,
+      tld: domain.tld,
+      verification_status: "VERIFIED",
+      is_verified: true,
+      is_admin_pick: domain.isAdminPick,
+      is_sponsored: domain.isSponsored,
+      likes: domain.likes
+    }));
+    
+    // Insert in batches of 10 to avoid hitting any size limits
+    for (let i = 0; i < domainsToInsert.length; i += 10) {
+      const batch = domainsToInsert.slice(i, i + 10);
       
-    if (insertError) {
-      console.error("Error seeding domains:", insertError);
-      return;
+      const { error: insertError } = await supabase
+        .from('domains')
+        .insert(batch);
+        
+      if (insertError) {
+        console.error(`Error seeding domains batch ${i/10 + 1}:`, insertError);
+      } else {
+        console.log(`Successfully seeded batch ${i/10 + 1} (${batch.length} domains)`);
+      }
     }
     
-    console.log(`Successfully seeded ${exampleDomains.length} domains`);
+    console.log(`Successfully seeded ${domainsToInsert.length} domains from mockData`);
   } catch (error) {
     console.error("Error in seedInitialDomains:", error);
   }

@@ -10,6 +10,7 @@ import DomainsList from "@/components/domains/DomainsList";
 import DomainFilters from "@/components/domains/DomainFilters";
 import DomainsPagination from "@/components/domains/DomainsPagination";
 import { supabase } from "@/integrations/supabase/client";
+import { seedInitialDomains } from "@/services/seedDomains";
 
 const Domains = () => {
   const location = useLocation();
@@ -32,6 +33,9 @@ const Domains = () => {
     const fetchDomains = async () => {
       setIsLoading(true);
       try {
+        // Seed domains if needed
+        await seedInitialDomains();
+        
         // Fetch verified domains from Supabase (those available for purchase)
         const { data, error } = await supabase
           .from('domains')
