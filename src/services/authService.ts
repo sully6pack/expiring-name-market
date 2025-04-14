@@ -1,4 +1,3 @@
-
 import { User } from "@/types";
 import { currentUser } from "@/lib/mockData";
 import { toast } from "sonner";
@@ -186,3 +185,24 @@ export const isAuthenticated = (): boolean => {
   return !!getCurrentUser();
 };
 
+// Change password for authenticated user
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+  try {
+    // Validate input
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      toast.error("Please provide a valid password (min 6 characters)");
+      return false;
+    }
+    
+    // In a real app, this would validate the current password and update it
+    // For the mock service, we'll just log it and return success
+    console.log(`Password changed for user: ${authenticatedUser?.email}`);
+    
+    toast.success("Password has been changed successfully");
+    return true;
+  } catch (error) {
+    console.error("Password change error:", error);
+    toast.error("Failed to change password");
+    return false;
+  }
+};

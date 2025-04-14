@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase, createUserProfile, fetchCurrentUser } from '@/lib/supabase';
 import { User } from '@/types';
@@ -236,4 +235,39 @@ export const resetPassword = async (newPassword: string): Promise<boolean> => {
 export const isAuthenticated = async (): Promise<boolean> => {
   const user = await getCurrentUser();
   return !!user;
+};
+
+// New function to change password for authenticated user
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+  try {
+    // First verify the current password is correct by signing in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: (await getCurrentUser())?.email || '',
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      console.error('Current password verification failed:', signInError.message);
+      toast.error('Current password is incorrect');
+      return false;
+    }
+
+    // Update the password
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      console.error('Password update error:', error.message);
+      toast.error(error.message || 'Failed to change password');
+      return false;
+    }
+
+    toast.success('Password has been changed successfully');
+    return true;
+  } catch (error) {
+    console.error('Password change error:', error);
+    toast.error('An unexpected error occurred. Please try again.');
+    return false;
+  }
 };
