@@ -83,7 +83,7 @@ export const seedInitialDomains = async () => {
         seller_id: adminId,
         seller_name: "Admin",
         price: 99.00,
-        category: DomainCategory.Environmental,
+        category: DomainCategory.Other, // Changed from Environmental to Other as Environmental doesn't exist in the enum
         tld: "org",
         verification_status: "VERIFIED",
         is_verified: true
