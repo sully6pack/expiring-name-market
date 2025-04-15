@@ -4,10 +4,11 @@ import { Domain, LeaderboardType } from "@/types";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Heart, Tag, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import DomainCheckout from "./DomainCheckout";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LeaderboardProps {
   title: string;
@@ -16,48 +17,113 @@ interface LeaderboardProps {
 }
 
 const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
+  const { appUser } = useAuth();
   const [likedDomains, setLikedDomains] = useState<Record<string, boolean>>({});
   const [domainLikes, setDomainLikes] = useState<Record<string, number>>({});
   const [checkoutDomain, setCheckoutDomain] = useState<Domain | null>(null);
 
+  // Check liked status for each domain when component mounts or domains change
+  useEffect(() => {
+    const checkLikedStatus = async () => {
+      if (!appUser) return;
+
+      try {
+        const { data: likedData, error } = await supabase
+          .from('domain_likes')
+          .select('domain_id')
+          .eq('user_id', appUser.id)
+          .in('domain_id', domains.map(d => d.id));
+
+        if (error) {
+          console.error("Error checking liked domains:", error);
+          return;
+        }
+
+        const likedDomainIds = likedData.map(item => item.domain_id);
+        const likedStatus = domains.reduce((acc, domain) => {
+          acc[domain.id] = likedDomainIds.includes(domain.id);
+          return acc;
+        }, {});
+
+        setLikedDomains(likedStatus);
+      } catch (error) {
+        console.error("Error in checkLikedStatus:", error);
+      }
+    };
+
+    checkLikedStatus();
+  }, [appUser, domains]);
+
   const handleLike = async (domain: Domain) => {
+    if (!appUser) {
+      toast.error("Please sign in to like domains");
+      return;
+    }
+
     try {
       const isCurrentlyLiked = likedDomains[domain.id] || false;
-      const newLikedState = !isCurrentlyLiked;
-      
-      // Update likes in the database
       const currentLikes = domainLikes[domain.id] || domain.likes;
-      const newLikes = newLikedState ? currentLikes + 1 : currentLikes - 1;
-      
-      const { error } = await supabase
-        .from('domains')
-        .update({ likes: newLikes })
-        .eq('id', domain.id);
-        
-      if (error) throw error;
-      
-      // Update UI state
-      setLikedDomains({
-        ...likedDomains,
-        [domain.id]: newLikedState
-      });
-      
-      setDomainLikes({
-        ...domainLikes,
-        [domain.id]: newLikes
-      });
-      
-      if (newLikedState) {
+
+      if (!isCurrentlyLiked) {
+        // Add like
+        const { error: likeError } = await supabase
+          .from('domain_likes')
+          .insert({ 
+            domain_id: domain.id, 
+            user_id: appUser.id 
+          });
+          
+        if (likeError) throw likeError;
+
+        const { error: updateError } = await supabase
+          .from('domains')
+          .update({ likes: currentLikes + 1 })
+          .eq('id', domain.id);
+          
+        if (updateError) throw updateError;
+
+        setLikedDomains({
+          ...likedDomains,
+          [domain.id]: true
+        });
+
+        setDomainLikes({
+          ...domainLikes,
+          [domain.id]: currentLikes + 1
+        });
+
         toast.success(`You liked ${domain.name}`);
+      } else {
+        // Remove like
+        const { error: unlikeError } = await supabase
+          .from('domain_likes')
+          .delete()
+          .eq('domain_id', domain.id)
+          .eq('user_id', appUser.id);
+          
+        if (unlikeError) throw unlikeError;
+
+        const { error: updateError } = await supabase
+          .from('domains')
+          .update({ likes: currentLikes - 1 })
+          .eq('id', domain.id);
+          
+        if (updateError) throw updateError;
+
+        setLikedDomains({
+          ...likedDomains,
+          [domain.id]: false
+        });
+
+        setDomainLikes({
+          ...domainLikes,
+          [domain.id]: currentLikes - 1
+        });
       }
     } catch (error) {
       console.error("Error updating likes:", error);
       toast.error("Failed to update likes. Please try again.");
     }
-  };
-
-  const handleBuy = (domain: Domain) => {
-    setCheckoutDomain(domain);
   };
 
   const getDisplayedLikes = (domain: Domain) => {
@@ -92,6 +158,7 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => handleLike(domain)}
+                        disabled={!appUser}
                         className="flex items-center gap-1 text-xs bg-transparent border-0 cursor-pointer p-0 hover:text-red-500"
                       >
                         <Heart 

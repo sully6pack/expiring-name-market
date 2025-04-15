@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Heart, Tag } from "lucide-react";
 import { toast } from "sonner";
 import DomainCheckout from "./DomainCheckout";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DomainCardProps {
   domain: Domain;
@@ -16,32 +16,76 @@ interface DomainCardProps {
 }
 
 const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
+  const { appUser } = useAuth();
   const [likes, setLikes] = useState(domain.likes);
   const [isLiked, setIsLiked] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!appUser) return;
+
+      const { data, error } = await supabase
+        .from('domain_likes')
+        .select('*')
+        .eq('domain_id', domain.id)
+        .eq('user_id', appUser.id)
+        .single();
+
+      if (error) {
+        console.error("Error checking like status:", error);
+      } else {
+        setIsLiked(!!data);
+      }
+    };
+
+    checkIfLiked();
+  }, [appUser, domain.id]);
+
   const handleLike = async () => {
+    if (!appUser) {
+      toast.error("Please sign in to like domains");
+      return;
+    }
+
     try {
       if (!isLiked) {
-        // Increment likes in the database
-        const { error } = await supabase
+        // Add like
+        const { error: likeError } = await supabase
+          .from('domain_likes')
+          .insert({ 
+            domain_id: domain.id, 
+            user_id: appUser.id 
+          });
+          
+        if (likeError) throw likeError;
+        
+        const { error: updateError } = await supabase
           .from('domains')
           .update({ likes: likes + 1 })
           .eq('id', domain.id);
           
-        if (error) throw error;
+        if (updateError) throw updateError;
         
         setLikes(likes + 1);
         setIsLiked(true);
         toast.success(`You liked ${domain.name}`);
       } else {
-        // Decrement likes in the database
-        const { error } = await supabase
+        // Remove like
+        const { error: unlikeError } = await supabase
+          .from('domain_likes')
+          .delete()
+          .eq('domain_id', domain.id)
+          .eq('user_id', appUser.id);
+          
+        if (unlikeError) throw unlikeError;
+        
+        const { error: updateError } = await supabase
           .from('domains')
           .update({ likes: likes - 1 })
           .eq('id', domain.id);
           
-        if (error) throw error;
+        if (updateError) throw updateError;
         
         setLikes(likes - 1);
         setIsLiked(false);
@@ -109,6 +153,7 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
               size="sm"
               className="flex items-center gap-1"
               onClick={handleLike}
+              disabled={!appUser}
             >
               <Heart
                 className={isLiked ? "fill-red-500 text-red-500" : ""}
