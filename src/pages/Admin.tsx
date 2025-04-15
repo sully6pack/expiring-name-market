@@ -13,16 +13,15 @@ import { formatDate } from "@/utils/validation";
 import { 
   getUserManagementInfo, 
   getAdminStats, 
-  setDomainAsAdminPick, 
-  setDomainAsSponsored,
-  removeDomain,
+  updateUser,
   AdminStats
 } from "@/services/adminService";
 import UserManagementTab from "@/components/admin/UserManagementTab";
 import FAQManagementTab from "@/components/admin/FAQManagementTab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentUser } from "@/lib/mockData";
-import { getAllDomains } from "@/services/domainService";
+import { supabase } from "@/integrations/supabase/client";
+import { convertDbDomainToDomain } from "@/lib/supabase";
 
 const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +50,25 @@ const Admin = () => {
     isLoading: isLoadingDomains 
   } = useQuery({
     queryKey: ['admin-domains'],
-    queryFn: getAllDomains,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('domains')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching domains:', error);
+        toast({
+          title: "Error Loading Domains",
+          description: error.message,
+          variant: "destructive",
+        });
+        return [];
+      }
+      
+      // Convert database format to app format
+      return data.map(item => convertDbDomainToDomain(item));
+    },
     enabled: !isLoading,
   });
 
@@ -77,25 +94,68 @@ const Admin = () => {
 
   // Mutations for domain actions
   const toggleAdminPickMutation = useMutation({
-    mutationFn: ({ domainId, isAdminPick }: { domainId: string, isAdminPick: boolean }) => 
-      setDomainAsAdminPick(domainId, isAdminPick),
+    mutationFn: async ({ domainId, isAdminPick }: { domainId: string, isAdminPick: boolean }) => {
+      const { error } = await supabase
+        .from('domains')
+        .update({ is_admin_pick: isAdminPick })
+        .eq('id', domainId);
+        
+      if (error) throw error;
+      return { domainId, isAdminPick };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update domain",
+        variant: "destructive",
+      });
     }
   });
 
   const toggleSponsoredMutation = useMutation({
-    mutationFn: ({ domainId, isSponsored }: { domainId: string, isSponsored: boolean }) => 
-      setDomainAsSponsored(domainId, isSponsored),
+    mutationFn: async ({ domainId, isSponsored }: { domainId: string, isSponsored: boolean }) => {
+      const { error } = await supabase
+        .from('domains')
+        .update({ is_sponsored: isSponsored })
+        .eq('id', domainId);
+        
+      if (error) throw error;
+      return { domainId, isSponsored };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update domain",
+        variant: "destructive",
+      });
     }
   });
 
   const removeDomainMutation = useMutation({
-    mutationFn: (domainId: string) => removeDomain(domainId),
+    mutationFn: async (domainId: string) => {
+      const { error } = await supabase
+        .from('domains')
+        .delete()
+        .eq('id', domainId);
+        
+      if (error) throw error;
+      return domainId;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Removing Domain",
+        description: error.message || "Failed to remove domain",
+        variant: "destructive",
+      });
     }
   });
 
