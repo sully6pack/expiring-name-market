@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Domain, LeaderboardType } from "@/types";
 import { Badge } from "./ui/badge";
@@ -22,7 +21,6 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
   const [domainLikes, setDomainLikes] = useState<Record<string, number>>({});
   const [checkoutDomain, setCheckoutDomain] = useState<Domain | null>(null);
 
-  // Check liked status for each domain when component mounts or domains change
   useEffect(() => {
     const checkLikedStatus = async () => {
       if (!appUser) return;
@@ -65,7 +63,6 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
       const currentLikes = domainLikes[domain.id] || domain.likes;
 
       if (!isCurrentlyLiked) {
-        // Add like
         const { error: likeError } = await supabase
           .from('domain_likes')
           .insert({ 
@@ -94,7 +91,6 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
 
         toast.success(`You liked ${domain.name}`);
       } else {
-        // Remove like
         const { error: unlikeError } = await supabase
           .from('domain_likes')
           .delete()
@@ -128,6 +124,10 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
 
   const getDisplayedLikes = (domain: Domain) => {
     return domainLikes[domain.id] !== undefined ? domainLikes[domain.id] : domain.likes;
+  };
+
+  const handleBuy = (domain: Domain) => {
+    setCheckoutDomain(domain);
   };
 
   return (
