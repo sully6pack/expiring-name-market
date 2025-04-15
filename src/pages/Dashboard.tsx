@@ -73,9 +73,9 @@ const Dashboard = () => {
         isSponsored: item.is_sponsored || false,
         isAdminPick: item.is_admin_pick || false,
         createdAt: new Date(item.created_at),
-        category: item.category as DomainCategory,
+        category: validateDomainCategory(item.category),
         tld: item.tld,
-        verificationStatus: item.verification_status as VerificationStatus,
+        verificationStatus: validateVerificationStatus(item.verification_status),
         isVerified: item.is_verified || false
       }));
       
@@ -101,6 +101,22 @@ const Dashboard = () => {
       console.error("Error in fetchUserDomains:", error);
       toast.error("An unexpected error occurred while loading domains");
     }
+  };
+
+  // Helper function to validate and convert category string to DomainCategory enum
+  const validateDomainCategory = (category: string): DomainCategory => {
+    if (Object.values(DomainCategory).includes(category as DomainCategory)) {
+      return category as DomainCategory;
+    }
+    return DomainCategory.Other; // Default to "Other" if category is not valid
+  };
+
+  // Helper function to validate and convert verification status string to VerificationStatus enum
+  const validateVerificationStatus = (status: string): VerificationStatus => {
+    if (Object.values(VerificationStatus).includes(status as VerificationStatus)) {
+      return status as VerificationStatus;
+    }
+    return VerificationStatus.NOT_STARTED; // Default if not valid
   };
 
   const handleSubmitDomain = async (domainData: {
@@ -140,7 +156,7 @@ const Dashboard = () => {
         return date;
       })();
       
-      // Insert domain into Supabase
+      // Insert domain into Supabase - IMPORTANT CHANGE: Set is_verified to true
       const { data, error } = await supabase
         .from('domains')
         .insert({
@@ -152,8 +168,8 @@ const Dashboard = () => {
           price: 99.00, // Fixed price
           category: domainData.category,
           tld: tld,
-          verification_status: 'NOT_STARTED',
-          is_verified: false
+          verification_status: VerificationStatus.VERIFIED, // Set as VERIFIED immediately
+          is_verified: true // Set to true so it appears in Browse Domains
         })
         .select()
         .single();
@@ -178,9 +194,9 @@ const Dashboard = () => {
         isSponsored: data.is_sponsored || false,
         isAdminPick: data.is_admin_pick || false,
         createdAt: new Date(data.created_at),
-        category: data.category as DomainCategory,
+        category: validateDomainCategory(data.category),
         tld: data.tld,
-        verificationStatus: data.verification_status as VerificationStatus,
+        verificationStatus: validateVerificationStatus(data.verification_status),
         isVerified: data.is_verified || false
       };
       
@@ -188,6 +204,11 @@ const Dashboard = () => {
       setMyDomains(prevDomains => [newDomain, ...prevDomains]);
       
       toast.success(`${domainData.domainName} has been successfully listed`);
+      
+      // Navigate to the Domains page to view the newly added domain
+      setTimeout(() => {
+        navigate('/domains');
+      }, 2000);
     } catch (error: any) {
       console.error("Error in handleSubmitDomain:", error);
       toast.error("An unexpected error occurred. Please try again.");
