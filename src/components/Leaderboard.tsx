@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Domain, LeaderboardType } from "@/types";
 import { Badge } from "./ui/badge";
@@ -22,6 +23,35 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
   const [checkoutDomain, setCheckoutDomain] = useState<Domain | null>(null);
 
   useEffect(() => {
+    const fetchDomainsWithCurrentLikes = async () => {
+      try {
+        // Get latest domain likes from the database
+        const { data, error } = await supabase
+          .from('domains')
+          .select('id, likes')
+          .in('id', domains.map(d => d.id));
+          
+        if (error) {
+          console.error("Error fetching current likes:", error);
+          return;
+        }
+        
+        // Update local state with the latest like counts
+        const currentLikes = data.reduce((acc, domain) => {
+          acc[domain.id] = domain.likes;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        setDomainLikes(currentLikes);
+      } catch (error) {
+        console.error("Error in fetchDomainsWithCurrentLikes:", error);
+      }
+    };
+    
+    fetchDomainsWithCurrentLikes();
+  }, [domains]);
+
+  useEffect(() => {
     const checkLikedStatus = async () => {
       if (!appUser) return;
 
@@ -41,7 +71,7 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
         const likedStatus = domains.reduce((acc, domain) => {
           acc[domain.id] = likedDomainIds.includes(domain.id);
           return acc;
-        }, {});
+        }, {} as Record<string, boolean>);
 
         setLikedDomains(likedStatus);
       } catch (error) {
@@ -60,9 +90,10 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
 
     try {
       const isCurrentlyLiked = likedDomains[domain.id] || false;
-      const currentLikes = domainLikes[domain.id] || domain.likes;
+      const currentLikes = domainLikes[domain.id] !== undefined ? domainLikes[domain.id] : domain.likes;
 
       if (!isCurrentlyLiked) {
+        // First update the domain_likes table
         const { error: likeError } = await supabase
           .from('domain_likes')
           .insert({ 
@@ -70,11 +101,19 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
             user_id: appUser.id 
           });
           
-        if (likeError) throw likeError;
+        if (likeError) {
+          if (likeError.code === '23505') {
+            toast.error("You've already liked this domain");
+            return;
+          }
+          throw likeError;
+        }
 
+        // Then update the likes count in the domains table
+        const newLikesCount = currentLikes + 1;
         const { error: updateError } = await supabase
           .from('domains')
-          .update({ likes: currentLikes + 1 })
+          .update({ likes: newLikesCount })
           .eq('id', domain.id);
           
         if (updateError) throw updateError;
@@ -86,11 +125,12 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
 
         setDomainLikes({
           ...domainLikes,
-          [domain.id]: currentLikes + 1
+          [domain.id]: newLikesCount
         });
 
         toast.success(`You liked ${domain.name}`);
       } else {
+        // First delete from domain_likes table
         const { error: unlikeError } = await supabase
           .from('domain_likes')
           .delete()
@@ -99,9 +139,11 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
           
         if (unlikeError) throw unlikeError;
 
+        // Then update the likes count in the domains table
+        const newLikesCount = Math.max(0, currentLikes - 1);
         const { error: updateError } = await supabase
           .from('domains')
-          .update({ likes: currentLikes - 1 })
+          .update({ likes: newLikesCount })
           .eq('id', domain.id);
           
         if (updateError) throw updateError;
@@ -113,7 +155,7 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
 
         setDomainLikes({
           ...domainLikes,
-          [domain.id]: currentLikes - 1
+          [domain.id]: newLikesCount
         });
       }
     } catch (error) {

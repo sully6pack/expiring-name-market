@@ -13,6 +13,7 @@ import { filterValidDomains } from "@/utils/validation";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { seedInitialDomains } from "@/services/seedDomains";
+import { validateDomainCategory, validateVerificationStatus } from "@/utils/domainValidation";
 
 const Index = () => {
   const [featuredDomains, setFeaturedDomains] = useState<Domain[]>([]);
@@ -89,22 +90,6 @@ const Index = () => {
     
     loadDomains();
   }, []);
-
-  // Helper function to validate and convert category string to DomainCategory enum
-  const validateDomainCategory = (category: string): DomainCategory => {
-    if (Object.values(DomainCategory).includes(category as DomainCategory)) {
-      return category as DomainCategory;
-    }
-    return DomainCategory.Other; // Default to "Other" if category is not valid
-  };
-
-  // Helper function to validate and convert verification status string to VerificationStatus enum
-  const validateVerificationStatus = (status: string): VerificationStatus => {
-    if (Object.values(VerificationStatus).includes(status as VerificationStatus)) {
-      return status as VerificationStatus;
-    }
-    return VerificationStatus.NOT_STARTED; // Default if not valid
-  };
 
   return (
     <div className="min-h-screen flex flex-col">

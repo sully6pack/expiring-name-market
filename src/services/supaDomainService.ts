@@ -1,3 +1,4 @@
+
 import { supabase, convertDbDomainToDomain, fetchDomainById, updateDomainVerification } from '@/lib/supabase';
 import { Domain, DomainCategory, VerificationStatus, VerificationMethod } from '@/types';
 import { extractTLD } from '@/utils/domainUtils';
@@ -260,6 +261,66 @@ export const updateDomain = async (updatedDomain: Domain): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Error in updateDomain:', error);
+    return false;
+  }
+};
+
+// Update like status for a domain
+export const toggleDomainLike = async (domainId: string, userId: string, isAdding: boolean): Promise<boolean> => {
+  try {
+    if (isAdding) {
+      // Add like
+      const { error } = await supabase
+        .from('domain_likes')
+        .insert({ domain_id: domainId, user_id: userId });
+      
+      if (error) {
+        console.error('Error adding domain like:', error);
+        return false;
+      }
+    } else {
+      // Remove like
+      const { error } = await supabase
+        .from('domain_likes')
+        .delete()
+        .eq('domain_id', domainId)
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error('Error removing domain like:', error);
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in toggleDomainLike:', error);
+    return false;
+  }
+};
+
+// Check if a user has liked a domain
+export const checkDomainLiked = async (domainId: string, userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('domain_likes')
+      .select('id')
+      .eq('domain_id', domainId)
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No matching rows found (not liked)
+        return false;
+      }
+      console.error('Error checking domain like status:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error('Error in checkDomainLiked:', error);
     return false;
   }
 };
