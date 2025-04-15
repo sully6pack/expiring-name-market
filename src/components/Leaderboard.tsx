@@ -7,6 +7,7 @@ import { Heart, Tag, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import DomainCheckout from "./DomainCheckout";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeaderboardProps {
   title: string;
@@ -19,25 +20,39 @@ const Leaderboard = ({ title, type, domains }: LeaderboardProps) => {
   const [domainLikes, setDomainLikes] = useState<Record<string, number>>({});
   const [checkoutDomain, setCheckoutDomain] = useState<Domain | null>(null);
 
-  const handleLike = (domain: Domain) => {
-    const isCurrentlyLiked = likedDomains[domain.id] || false;
-    const newLikedState = !isCurrentlyLiked;
-    
-    setLikedDomains({
-      ...likedDomains,
-      [domain.id]: newLikedState
-    });
-    
-    const currentLikes = domainLikes[domain.id] || domain.likes;
-    const newLikes = newLikedState ? currentLikes + 1 : currentLikes - 1;
-    
-    setDomainLikes({
-      ...domainLikes,
-      [domain.id]: newLikes
-    });
-    
-    if (newLikedState) {
-      toast.success(`You liked ${domain.name}`);
+  const handleLike = async (domain: Domain) => {
+    try {
+      const isCurrentlyLiked = likedDomains[domain.id] || false;
+      const newLikedState = !isCurrentlyLiked;
+      
+      // Update likes in the database
+      const currentLikes = domainLikes[domain.id] || domain.likes;
+      const newLikes = newLikedState ? currentLikes + 1 : currentLikes - 1;
+      
+      const { error } = await supabase
+        .from('domains')
+        .update({ likes: newLikes })
+        .eq('id', domain.id);
+        
+      if (error) throw error;
+      
+      // Update UI state
+      setLikedDomains({
+        ...likedDomains,
+        [domain.id]: newLikedState
+      });
+      
+      setDomainLikes({
+        ...domainLikes,
+        [domain.id]: newLikes
+      });
+      
+      if (newLikedState) {
+        toast.success(`You liked ${domain.name}`);
+      }
+    } catch (error) {
+      console.error("Error updating likes:", error);
+      toast.error("Failed to update likes. Please try again.");
     }
   };
 
