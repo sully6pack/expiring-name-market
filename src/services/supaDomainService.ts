@@ -1,33 +1,7 @@
-
 import { supabase, convertDbDomainToDomain, fetchDomainById, updateDomainVerification } from '@/lib/supabase';
 import { Domain, DomainCategory, VerificationStatus, VerificationMethod } from '@/types';
 import { extractTLD } from '@/utils/domainUtils';
-
-// Helper function to ensure domain category is a valid DomainCategory enum
-const validateDomainCategory = (category: string): DomainCategory => {
-  if (Object.values(DomainCategory).includes(category as DomainCategory)) {
-    return category as DomainCategory;
-  }
-  return DomainCategory.Other;
-};
-
-// Helper function to ensure verification status is a valid VerificationStatus enum
-const validateVerificationStatus = (status: string): VerificationStatus => {
-  if (Object.values(VerificationStatus).includes(status as VerificationStatus)) {
-    return status as VerificationStatus;
-  }
-  return VerificationStatus.NOT_STARTED;
-};
-
-// Helper function to ensure verification method is a valid VerificationMethod enum
-const validateVerificationMethod = (method?: string): VerificationMethod | undefined => {
-  if (!method) return undefined;
-  
-  if (Object.values(VerificationMethod).includes(method as VerificationMethod)) {
-    return method as VerificationMethod;
-  }
-  return undefined;
-};
+import { validateDomainCategory, validateVerificationStatus, validateVerificationMethod } from '@/utils/domainValidation';
 
 // Enhance conversion to properly handle category type and verification status
 const enhancedConvertDbDomainToDomain = (dbDomain: any): Domain => {

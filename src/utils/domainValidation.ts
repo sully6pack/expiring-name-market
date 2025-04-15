@@ -1,5 +1,5 @@
 
-import { DomainCategory, VerificationStatus } from "@/types";
+import { DomainCategory, VerificationStatus, VerificationMethod } from "@/types";
 
 // Helper function to validate and convert category string to DomainCategory enum
 export const validateDomainCategory = (category: string): DomainCategory => {
@@ -15,4 +15,14 @@ export const validateVerificationStatus = (status: string): VerificationStatus =
     return status as VerificationStatus;
   }
   return VerificationStatus.NOT_STARTED; // Default if not valid
+};
+
+// Helper function to validate and convert verification method string to VerificationMethod enum
+export const validateVerificationMethod = (method?: string): VerificationMethod | undefined => {
+  if (!method) return undefined;
+  
+  if (Object.values(VerificationMethod).includes(method as VerificationMethod)) {
+    return method as VerificationMethod;
+  }
+  return undefined;
 };

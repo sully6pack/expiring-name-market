@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Domain, User } from "@/types";
+import { Domain, User, VerificationMethod } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/validation";
 import { 
@@ -22,6 +23,16 @@ import { currentUser } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { convertDbDomainToDomain } from "@/lib/supabase";
 import { validateDomainCategory, validateVerificationStatus } from "@/utils/domainValidation";
+
+// Helper function to validate verification method
+const validateVerificationMethod = (method?: string): VerificationMethod | undefined => {
+  if (!method) return undefined;
+  
+  if (Object.values(VerificationMethod).includes(method as VerificationMethod)) {
+    return method as VerificationMethod;
+  }
+  return undefined;
+};
 
 const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +84,7 @@ const Admin = () => {
           ...baseDomain,
           category: validateDomainCategory(item.category),
           verificationStatus: validateVerificationStatus(item.verification_status),
+          verificationMethod: validateVerificationMethod(item.verification_method)
         };
       });
     },
