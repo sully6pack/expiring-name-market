@@ -19,7 +19,7 @@ const SponsorDomainButton = ({ domain, onSuccess }: SponsorDomainButtonProps) =>
   // Don't show the button if the domain is already sponsored
   if (domain.isSponsored) {
     return (
-      <Button variant="ghost" size="sm" className="text-green-600" disabled>
+      <Button variant="ghost" size="sm" className="text-green-600 w-full" disabled>
         <CheckCircle className="h-4 w-4 mr-1" /> Sponsored
       </Button>
     );
@@ -55,7 +55,7 @@ const SponsorDomainButton = ({ domain, onSuccess }: SponsorDomainButtonProps) =>
       <Button 
         variant="outline" 
         size="sm"
-        className="text-amber-600 border-amber-300 hover:bg-amber-50"
+        className="text-amber-600 border-amber-300 hover:bg-amber-50 w-full"
         onClick={() => setIsDialogOpen(true)}
       >
         <Sparkles className="h-4 w-4 mr-1" /> Sponsor

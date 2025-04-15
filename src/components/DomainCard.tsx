@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { formatDate, getDaysUntilExpiration } from "@/utils/validation";
 import { Heart, Tag } from "lucide-react";
 import { toast } from "sonner";
 import DomainCheckout from "./DomainCheckout";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DomainCardProps {
   domain: Domain;
@@ -19,14 +20,35 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
-  const handleLike = () => {
-    if (!isLiked) {
-      setLikes(likes + 1);
-      setIsLiked(true);
-      toast.success(`You liked ${domain.name}`);
-    } else {
-      setLikes(likes - 1);
-      setIsLiked(false);
+  const handleLike = async () => {
+    try {
+      if (!isLiked) {
+        // Increment likes in the database
+        const { error } = await supabase
+          .from('domains')
+          .update({ likes: likes + 1 })
+          .eq('id', domain.id);
+          
+        if (error) throw error;
+        
+        setLikes(likes + 1);
+        setIsLiked(true);
+        toast.success(`You liked ${domain.name}`);
+      } else {
+        // Decrement likes in the database
+        const { error } = await supabase
+          .from('domains')
+          .update({ likes: likes - 1 })
+          .eq('id', domain.id);
+          
+        if (error) throw error;
+        
+        setLikes(likes - 1);
+        setIsLiked(false);
+      }
+    } catch (error) {
+      console.error("Error updating likes:", error);
+      toast.error("Failed to update likes. Please try again.");
     }
   };
 

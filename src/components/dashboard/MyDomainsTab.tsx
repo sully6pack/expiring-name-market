@@ -17,7 +17,7 @@ const MyDomainsTab = ({ domains, onDeleteDomain, onDomainUpdated }: MyDomainsTab
       {domains.map((domain) => (
         <div key={domain.id} className="relative">
           <DomainCard domain={domain} />
-          <div className="absolute top-2 right-2 flex gap-2">
+          <div className="absolute top-2 right-2 flex flex-col gap-2">
             <SponsorDomainButton domain={domain} onSuccess={onDomainUpdated} />
             <DomainDeleteButton domain={domain} onDelete={onDeleteDomain} />
           </div>
