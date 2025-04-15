@@ -13,6 +13,7 @@ interface DomainSubmitData {
   description: string;
   expirationDate: Date | undefined;
   category: DomainCategory;
+  isSponsored?: boolean;
 }
 
 export const useDashboardDomains = (userId: string | undefined) => {
@@ -125,7 +126,8 @@ export const useDashboardDomains = (userId: string | undefined) => {
           category: domainData.category,
           tld: tld,
           verification_status: VerificationStatus.VERIFIED, // Set as VERIFIED immediately
-          is_verified: true // Set to true so it appears in Browse Domains
+          is_verified: true, // Set to true so it appears in Browse Domains
+          is_sponsored: domainData.isSponsored || false // Add sponsored flag
         })
         .select()
         .single();
@@ -208,6 +210,7 @@ export const useDashboardDomains = (userId: string | undefined) => {
     myDomains,
     interestedBuyers,
     handleSubmitDomain,
-    handleDeleteDomain
+    handleDeleteDomain,
+    fetchUserDomains
   };
 };

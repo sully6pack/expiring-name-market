@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, AlertCircle, InfoIcon, Loader2, CheckCircle, CreditCard } from "lucide-react";
+import { CalendarIcon, AlertCircle, InfoIcon, Loader2, CheckCircle, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DomainCategory, Domain, VerificationStatus } from "@/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +18,7 @@ import { isValidDomainName } from "@/utils/validation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { stripePromise, formatPriceForStripe } from "@/utils/stripe";
 import { currentUser } from "@/lib/mockData";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ListDomainTabProps {
   onSubmit: (domainData: {
@@ -26,6 +26,7 @@ interface ListDomainTabProps {
     description: string;
     expirationDate: Date | undefined;
     category: DomainCategory;
+    isSponsored?: boolean;
   }) => void;
   isSubmitting: boolean;
 }
@@ -43,7 +44,14 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
   const [expirationSource, setExpirationSource] = useState<"user" | "whois" | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isSponsoredDomain, setIsSponsoredDomain] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(1.00);
   const { toast } = useToast();
+
+  const updateTotalAmount = (isSponsored: boolean) => {
+    setIsSponsoredDomain(isSponsored);
+    setTotalAmount(isSponsored ? 6.00 : 1.00);
+  };
 
   const validateDomain = async () => {
     if (!domainName) {
@@ -160,10 +168,9 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
         setIsProcessingPayment(false);
         setIsPaymentDialogOpen(false);
         
-        // Fixed: Use toast({}) instead of toast.success()
         toast({
           title: "Payment processed successfully",
-          description: "Domain listing fee paid.",
+          description: `Domain listing ${isSponsoredDomain ? "and sponsorship " : ""}fee paid.`,
         });
         
         submitDomainListing();
@@ -171,7 +178,6 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     } catch (error) {
       console.error("Payment error:", error);
       
-      // Fixed: Use toast({}) with variant: "destructive" instead of toast.error()
       toast({
         variant: "destructive",
         title: "Payment failed",
@@ -188,6 +194,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       description,
       expirationDate,
       category,
+      isSponsored: isSponsoredDomain
     });
     
     resetForm();
@@ -234,6 +241,7 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
     setVerificationStatus("idle");
     setVerificationMessage("");
     setExpirationSource(null);
+    setIsSponsoredDomain(false);
   };
 
   const handleExpirationDateChange = (date: Date | undefined) => {
@@ -341,6 +349,28 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
             </div>
             
             <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="sponsor-domain" 
+                  checked={isSponsoredDomain}
+                  onCheckedChange={(checked) => updateTotalAmount(!!checked)}
+                />
+                <div className="grid gap-1.5">
+                  <Label 
+                    htmlFor="sponsor-domain" 
+                    className="flex items-center cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4 text-amber-500 mr-2" />
+                    Sponsor this domain for $5 (appears in Sponsored Leaderboard)
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get more visibility by sponsoring your domain to appear in the Sponsored section
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="expiration-date">Expiration Date</Label>
                 {expirationSource === "whois" && expirationDate && (
@@ -389,7 +419,8 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
             
             <div>
               <p className="text-sm text-muted-foreground mb-4">
-                All domains are listed at our fixed price of $99. A $1 listing fee applies.
+                All domains are listed at our fixed price of $99. 
+                A $1 listing fee applies{isSponsoredDomain ? " plus $5 for sponsorship" : ""}.
               </p>
               <Button 
                 type="submit" 
@@ -406,9 +437,11 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Domain Listing Fee</DialogTitle>
+            <DialogTitle>Domain Listing {isSponsoredDomain ? "& Sponsorship " : ""}Fee</DialogTitle>
             <DialogDescription>
-              A $1.00 fee is required to list your domain on NotRenewing.com
+              {isSponsoredDomain 
+                ? "A $1.00 listing fee plus $5.00 sponsorship fee is required" 
+                : "A $1.00 fee is required to list your domain on NotRenewing.com"}
             </DialogDescription>
           </DialogHeader>
           
@@ -423,11 +456,20 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
                 <span className="font-medium">$1.00</span>
               </div>
               
+              {isSponsoredDomain && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground flex items-center">
+                    <Sparkles className="h-4 w-4 text-amber-500 mr-1" /> Sponsorship Fee:
+                  </span>
+                  <span className="font-medium">$5.00</span>
+                </div>
+              )}
+              
               <hr className="my-2" />
               
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground font-bold">Total:</span>
-                <span className="font-bold text-lg">$1.00</span>
+                <span className="font-bold text-lg">${totalAmount.toFixed(2)}</span>
               </div>
               
               <Button 
@@ -435,7 +477,9 @@ const ListDomainTab = ({ onSubmit, isSubmitting }: ListDomainTabProps) => {
                 disabled={isProcessingPayment}
                 className="w-full"
               >
-                {isProcessingPayment ? "Processing..." : "Pay $1.00 Fee"}
+                {isProcessingPayment 
+                  ? "Processing..." 
+                  : `Pay $${totalAmount.toFixed(2)} Fee`}
                 {!isProcessingPayment && <CreditCard className="ml-2" size={16} />}
               </Button>
               

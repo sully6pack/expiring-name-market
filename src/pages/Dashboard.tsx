@@ -23,7 +23,8 @@ const Dashboard = () => {
     myDomains,
     interestedBuyers,
     handleSubmitDomain,
-    handleDeleteDomain
+    handleDeleteDomain,
+    fetchUserDomains
   } = useDashboardDomains(currentUser?.id);
 
   // Check if user is authenticated
@@ -44,6 +45,12 @@ const Dashboard = () => {
     
     checkAuth();
   }, [navigate]);
+
+  const handleDomainUpdated = () => {
+    if (currentUser?.id) {
+      fetchUserDomains(currentUser.id);
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -74,7 +81,8 @@ const Dashboard = () => {
           <TabsContent value="my-domains" className="space-y-4">
             <MyDomainsTab 
               domains={myDomains} 
-              onDeleteDomain={handleDeleteDomain} 
+              onDeleteDomain={handleDeleteDomain}
+              onDomainUpdated={handleDomainUpdated}
             />
           </TabsContent>
           
