@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -22,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentUser } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { convertDbDomainToDomain } from "@/lib/supabase";
+import { validateDomainCategory, validateVerificationStatus } from "@/utils/domainValidation";
 
 const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -66,8 +66,15 @@ const Admin = () => {
         return [];
       }
       
-      // Convert database format to app format
-      return data.map(item => convertDbDomainToDomain(item));
+      // Convert database format to app format with proper validation of enum types
+      return data.map(item => {
+        const baseDomain = convertDbDomainToDomain(item);
+        return {
+          ...baseDomain,
+          category: validateDomainCategory(item.category),
+          verificationStatus: validateVerificationStatus(item.verification_status),
+        };
+      });
     },
     enabled: !isLoading,
   });
