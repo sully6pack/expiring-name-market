@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -178,7 +177,7 @@ const Admin = () => {
     }
   });
 
-  // Create a local state object to track switch states while mutations are in progress
+  // Manage switch states locally for immediate UI feedback
   const [switchStates, setSwitchStates] = useState<{
     [key: string]: { adminPick: boolean; sponsored: boolean }
   }>({});
@@ -198,23 +197,60 @@ const Admin = () => {
     }
   }, [domains]);
 
-  const toggleAdminPick = (domain: Domain) => {
-    // Optimistically update the local switch state
+  // Listen for realtime updates to keep switches in sync
+  useEffect(() => {
+    const handleAdminPickChanged = (event: CustomEvent) => {
+      const { domainId, isAdminPick } = event.detail;
+      setSwitchStates(prev => ({
+        ...prev,
+        [domainId]: {
+          ...prev[domainId],
+          adminPick: isAdminPick
+        }
+      }));
+    };
+
+    const handleSponsoredChanged = (event: CustomEvent) => {
+      const { domainId, isSponsored } = event.detail;
+      setSwitchStates(prev => ({
+        ...prev,
+        [domainId]: {
+          ...prev[domainId],
+          sponsored: isSponsored
+        }
+      }));
+    };
+
+    // Add event listeners for the custom events
+    window.addEventListener('domain-admin-pick-changed', handleAdminPickChanged as EventListener);
+    window.addEventListener('domain-sponsored-changed', handleSponsoredChanged as EventListener);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('domain-admin-pick-changed', handleAdminPickChanged as EventListener);
+      window.removeEventListener('domain-sponsored-changed', handleSponsoredChanged as EventListener);
+    };
+  }, []);
+
+  const toggleAdminPick = useCallback((domain: Domain) => {
+    // Update local state immediately for responsive UI
+    const newValue = !switchStates[domain.id]?.adminPick;
     setSwitchStates(prev => ({
       ...prev,
       [domain.id]: {
         ...prev[domain.id],
-        adminPick: !prev[domain.id]?.adminPick
+        adminPick: newValue
       }
     }));
 
+    // Make the API call
     toggleAdminPickMutation.mutate(
-      { domainId: domain.id, isAdminPick: !domain.isAdminPick },
+      { domainId: domain.id, isAdminPick: newValue },
       {
         onSuccess: () => {
           toast({
-            title: domain.isAdminPick ? "Removed from Staff Picks" : "Added to Staff Picks",
-            description: `${domain.name} has been ${domain.isAdminPick ? "removed from" : "added to"} the Staff Picks leaderboard`,
+            title: newValue ? "Added to Staff Picks" : "Removed from Staff Picks",
+            description: `${domain.name} has been ${newValue ? "added to" : "removed from"} the Staff Picks leaderboard`,
           });
         },
         onError: () => {
@@ -223,31 +259,33 @@ const Admin = () => {
             ...prev,
             [domain.id]: {
               ...prev[domain.id],
-              adminPick: domain.isAdminPick
+              adminPick: !newValue
             }
           }));
         }
       }
     );
-  };
+  }, [switchStates, toggleAdminPickMutation, toast]);
 
-  const toggleSponsored = (domain: Domain) => {
-    // Optimistically update the local switch state
+  const toggleSponsored = useCallback((domain: Domain) => {
+    // Update local state immediately for responsive UI
+    const newValue = !switchStates[domain.id]?.sponsored;
     setSwitchStates(prev => ({
       ...prev,
       [domain.id]: {
         ...prev[domain.id],
-        sponsored: !prev[domain.id]?.sponsored
+        sponsored: newValue
       }
     }));
 
+    // Make the API call
     toggleSponsoredMutation.mutate(
-      { domainId: domain.id, isSponsored: !domain.isSponsored },
+      { domainId: domain.id, isSponsored: newValue },
       {
         onSuccess: () => {
           toast({
-            title: domain.isSponsored ? "Removed from Sponsored" : "Added to Sponsored",
-            description: `${domain.name} has been ${domain.isSponsored ? "removed from" : "added to"} the Sponsored leaderboard`,
+            title: newValue ? "Added to Sponsored" : "Removed from Sponsored",
+            description: `${domain.name} has been ${newValue ? "added to" : "removed from"} the Sponsored leaderboard`,
           });
         },
         onError: () => {
@@ -256,13 +294,13 @@ const Admin = () => {
             ...prev,
             [domain.id]: {
               ...prev[domain.id],
-              sponsored: domain.isSponsored
+              sponsored: !newValue
             }
           }));
         }
       }
     );
-  };
+  }, [switchStates, toggleSponsoredMutation, toast]);
 
   const handleRemoveDomain = (domain: Domain) => {
     removeDomainMutation.mutate(domain.id, {

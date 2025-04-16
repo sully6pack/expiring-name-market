@@ -12,16 +12,37 @@ export const enableRealtimeForDomains = async () => {
         (payload) => {
           console.log('Change received for domains!', payload);
           if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
-            console.log(`Domain ${payload.new.name} likes changed from ${payload.old.likes} to ${payload.new.likes}`);
+            console.log(`Domain ${payload.new.name} updated`);
             
             // Log changes to admin_pick and sponsored status
             if (payload.new.is_admin_pick !== payload.old.is_admin_pick) {
               console.log(`Domain ${payload.new.name} staff pick status changed: ${payload.old.is_admin_pick} → ${payload.new.is_admin_pick}`);
+              
+              // Dispatch a custom event to notify components about the status change
+              window.dispatchEvent(new CustomEvent('domain-admin-pick-changed', { 
+                detail: { 
+                  domainId: payload.new.id,
+                  isAdminPick: payload.new.is_admin_pick 
+                } 
+              }));
             }
             
             if (payload.new.is_sponsored !== payload.old.is_sponsored) {
               console.log(`Domain ${payload.new.name} sponsored status changed: ${payload.old.is_sponsored} → ${payload.new.is_sponsored}`);
+              
+              // Dispatch a custom event to notify components about the status change
+              window.dispatchEvent(new CustomEvent('domain-sponsored-changed', { 
+                detail: { 
+                  domainId: payload.new.id,
+                  isSponsored: payload.new.is_sponsored 
+                } 
+              }));
             }
+            
+            // Dispatch a generic domain updated event
+            window.dispatchEvent(new CustomEvent('domain-updated', { 
+              detail: payload.new
+            }));
           }
         }
       )
