@@ -69,6 +69,7 @@ export function useDomainLike(domain: Domain) {
         { event: 'UPDATE', schema: 'public', table: 'domains', filter: `id=eq.${domain.id}` },
         (payload: any) => {
           if (payload.new && payload.new.likes !== undefined) {
+            console.log('Realtime update received:', payload.new.likes);
             setLikes(payload.new.likes);
           }
         }
@@ -88,6 +89,12 @@ export function useDomainLike(domain: Domain) {
 
     setIsLoading(true);
     try {
+      // Optimistically update UI first
+      const newIsLiked = !isLiked;
+      const likeDelta = newIsLiked ? 1 : -1;
+      setIsLiked(newIsLiked);
+      setLikes(prevLikes => prevLikes + likeDelta);
+      
       if (!isLiked) {
         // Add like
         const { error: likeError } = await supabase
@@ -99,16 +106,17 @@ export function useDomainLike(domain: Domain) {
           
         if (likeError) {
           if (likeError.code === '23505') {
+            // If this fails because we already liked it, just keep the UI updated
             toast.error("You've already liked this domain");
-            setIsLiked(true);
             setIsLoading(false);
             return;
           }
+          // Revert optimistic update on error
+          setIsLiked(false);
+          setLikes(prevLikes => prevLikes - 1);
           throw likeError;
         }
         
-        // The trigger will automatically update the likes count
-        setIsLiked(true);
         toast.success(`You liked ${domain.name}`);
       } else {
         // Remove like
@@ -118,10 +126,12 @@ export function useDomainLike(domain: Domain) {
           .eq('domain_id', domain.id)
           .eq('user_id', appUser.id);
           
-        if (unlikeError) throw unlikeError;
-        
-        // The trigger will automatically update the likes count
-        setIsLiked(false);
+        if (unlikeError) {
+          // Revert optimistic update on error
+          setIsLiked(true);
+          setLikes(prevLikes => prevLikes + 1);
+          throw unlikeError;
+        }
       }
     } catch (error) {
       console.error("Error updating likes:", error);

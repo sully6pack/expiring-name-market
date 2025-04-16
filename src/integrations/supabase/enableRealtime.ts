@@ -11,6 +11,9 @@ export const enableRealtimeForDomains = async () => {
         { event: '*', schema: 'public', table: 'domains' },
         (payload) => {
           console.log('Change received for domains!', payload);
+          if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
+            console.log(`Domain ${payload.new.name} likes changed from ${payload.old.likes} to ${payload.new.likes}`);
+          }
         }
       )
       .subscribe();
@@ -33,6 +36,11 @@ export const enableRealtimeForLikes = async () => {
         { event: '*', schema: 'public', table: 'domain_likes' },
         (payload) => {
           console.log('Change received for domain_likes!', payload);
+          if (payload.eventType === 'INSERT') {
+            console.log(`New like added for domain ID: ${payload.new.domain_id} by user ID: ${payload.new.user_id}`);
+          } else if (payload.eventType === 'DELETE') {
+            console.log(`Like removed for domain ID: ${payload.old.domain_id} by user ID: ${payload.old.user_id}`);
+          }
         }
       )
       .subscribe();
