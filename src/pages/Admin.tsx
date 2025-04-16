@@ -23,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { convertDbDomainToDomain } from "@/lib/supabase";
 import { validateDomainCategory, validateVerificationStatus } from "@/utils/domainValidation";
 
-// Helper function to validate verification method
 const validateVerificationMethod = (method?: string): VerificationMethod | undefined => {
   if (!method) return undefined;
   
@@ -39,9 +38,7 @@ const Admin = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Check authentication
   useEffect(() => {
-    // Check if user is authenticated and is an admin
     if (!currentUser || !currentUser.isAdmin) {
       toast({
         title: "Access Denied",
@@ -54,7 +51,6 @@ const Admin = () => {
     }
   }, [navigate, toast]);
 
-  // Fetch domains with React Query
   const { 
     data: domains = [],
     isLoading: isLoadingDomains 
@@ -76,7 +72,6 @@ const Admin = () => {
         return [];
       }
       
-      // Convert database format to app format with proper validation of enum types
       return data.map(item => {
         const baseDomain = convertDbDomainToDomain(item);
         return {
@@ -90,7 +85,6 @@ const Admin = () => {
     enabled: !isLoading,
   });
 
-  // Fetch users with React Query
   const { 
     data: users = [],
     isLoading: isLoadingUsers 
@@ -100,7 +94,6 @@ const Admin = () => {
     enabled: !isLoading,
   });
 
-  // Fetch stats with React Query
   const { 
     data: stats,
     isLoading: isLoadingStats 
@@ -110,21 +103,28 @@ const Admin = () => {
     enabled: !isLoading,
   });
 
-  // Mutations for domain actions
   const toggleAdminPickMutation = useMutation({
     mutationFn: async ({ domainId, isAdminPick }: { domainId: string, isAdminPick: boolean }) => {
-      const { error } = await supabase
+      console.log(`Setting admin pick for domain ${domainId} to ${isAdminPick}`);
+      const { data, error } = await supabase
         .from('domains')
         .update({ is_admin_pick: isAdminPick })
-        .eq('id', domainId);
+        .eq('id', domainId)
+        .select();
         
       if (error) throw error;
-      return { domainId, isAdminPick };
+      return { domainId, isAdminPick, data };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log(`Admin pick update successful:`, result);
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+      toast({
+        title: result.isAdminPick ? "Added to Staff Picks" : "Removed from Staff Picks",
+        description: `Domain has been ${result.isAdminPick ? "added to" : "removed from"} the Staff Picks leaderboard`,
+      });
     },
     onError: (error: any) => {
+      console.error(`Admin pick update failed:`, error);
       toast({
         title: "Error",
         description: error.message || "Failed to update domain",
@@ -135,18 +135,26 @@ const Admin = () => {
 
   const toggleSponsoredMutation = useMutation({
     mutationFn: async ({ domainId, isSponsored }: { domainId: string, isSponsored: boolean }) => {
-      const { error } = await supabase
+      console.log(`Setting sponsored for domain ${domainId} to ${isSponsored}`);
+      const { data, error } = await supabase
         .from('domains')
         .update({ is_sponsored: isSponsored })
-        .eq('id', domainId);
+        .eq('id', domainId)
+        .select();
         
       if (error) throw error;
-      return { domainId, isSponsored };
+      return { domainId, isSponsored, data };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log(`Sponsored update successful:`, result);
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+      toast({
+        title: result.isSponsored ? "Added to Sponsored" : "Removed from Sponsored",
+        description: `Domain has been ${result.isSponsored ? "added to" : "removed from"} the Sponsored leaderboard`,
+      });
     },
     onError: (error: any) => {
+      console.error(`Sponsored update failed:`, error);
       toast({
         title: "Error",
         description: error.message || "Failed to update domain",
@@ -165,10 +173,16 @@ const Admin = () => {
       if (error) throw error;
       return domainId;
     },
-    onSuccess: () => {
+    onSuccess: (domainId) => {
+      console.log(`Domain ${domainId} removed successfully`);
       queryClient.invalidateQueries({ queryKey: ['admin-domains'] });
+      toast({
+        title: "Domain Removed",
+        description: "The domain has been removed",
+      });
     },
     onError: (error: any) => {
+      console.error(`Domain removal failed:`, error);
       toast({
         title: "Error Removing Domain",
         description: error.message || "Failed to remove domain",
@@ -177,143 +191,164 @@ const Admin = () => {
     }
   });
 
-  // Manage switch states locally for immediate UI feedback
   const [switchStates, setSwitchStates] = useState<{
-    [key: string]: { adminPick: boolean; sponsored: boolean }
+    [key: string]: { 
+      adminPick: boolean; 
+      sponsored: boolean;
+      isAdminPickChanging: boolean;
+      isSponsoredChanging: boolean;
+    }
   }>({});
 
-  // Initialize switch states from domain data
   useEffect(() => {
     if (domains.length > 0) {
       const initialStates = domains.reduce((acc, domain) => {
         acc[domain.id] = {
           adminPick: domain.isAdminPick,
-          sponsored: domain.isSponsored
+          sponsored: domain.isSponsored,
+          isAdminPickChanging: false,
+          isSponsoredChanging: false
         };
         return acc;
-      }, {} as { [key: string]: { adminPick: boolean; sponsored: boolean } });
+      }, {} as { 
+        [key: string]: { 
+          adminPick: boolean; 
+          sponsored: boolean;
+          isAdminPickChanging: boolean;
+          isSponsoredChanging: boolean;
+        } 
+      });
       
       setSwitchStates(initialStates);
     }
   }, [domains]);
 
-  // Listen for realtime updates to keep switches in sync
   useEffect(() => {
     const handleAdminPickChanged = (event: CustomEvent) => {
       const { domainId, isAdminPick } = event.detail;
+      console.log(`Received admin pick change event: ${domainId} -> ${isAdminPick}`);
+      
       setSwitchStates(prev => ({
         ...prev,
         [domainId]: {
           ...prev[domainId],
-          adminPick: isAdminPick
+          adminPick: isAdminPick,
+          isAdminPickChanging: false
         }
       }));
     };
 
     const handleSponsoredChanged = (event: CustomEvent) => {
       const { domainId, isSponsored } = event.detail;
+      console.log(`Received sponsored change event: ${domainId} -> ${isSponsored}`);
+      
       setSwitchStates(prev => ({
         ...prev,
         [domainId]: {
           ...prev[domainId],
-          sponsored: isSponsored
+          sponsored: isSponsored,
+          isSponsoredChanging: false
         }
       }));
     };
 
-    // Add event listeners for the custom events
+    const handleDomainUpdated = (event: CustomEvent) => {
+      const updatedDomain = event.detail;
+      console.log(`Received domain update event:`, updatedDomain);
+      
+      if (updatedDomain && updatedDomain.id) {
+        setSwitchStates(prev => {
+          if (!prev[updatedDomain.id]) return prev;
+          
+          return {
+            ...prev,
+            [updatedDomain.id]: {
+              ...prev[updatedDomain.id],
+              adminPick: updatedDomain.is_admin_pick,
+              sponsored: updatedDomain.is_sponsored,
+              isAdminPickChanging: false,
+              isSponsoredChanging: false
+            }
+          };
+        });
+      }
+    };
+
     window.addEventListener('domain-admin-pick-changed', handleAdminPickChanged as EventListener);
     window.addEventListener('domain-sponsored-changed', handleSponsoredChanged as EventListener);
+    window.addEventListener('domain-updated', handleDomainUpdated as EventListener);
 
-    // Clean up event listeners
     return () => {
       window.removeEventListener('domain-admin-pick-changed', handleAdminPickChanged as EventListener);
       window.removeEventListener('domain-sponsored-changed', handleSponsoredChanged as EventListener);
+      window.removeEventListener('domain-updated', handleDomainUpdated as EventListener);
     };
   }, []);
 
   const toggleAdminPick = useCallback((domain: Domain) => {
-    // Update local state immediately for responsive UI
-    const newValue = !switchStates[domain.id]?.adminPick;
+    const currentState = switchStates[domain.id]?.adminPick ?? domain.isAdminPick;
+    const newValue = !currentState;
+    
     setSwitchStates(prev => ({
       ...prev,
       [domain.id]: {
         ...prev[domain.id],
-        adminPick: newValue
+        adminPick: newValue,
+        isAdminPickChanging: true
       }
     }));
 
-    // Make the API call
     toggleAdminPickMutation.mutate(
       { domainId: domain.id, isAdminPick: newValue },
       {
-        onSuccess: () => {
-          toast({
-            title: newValue ? "Added to Staff Picks" : "Removed from Staff Picks",
-            description: `${domain.name} has been ${newValue ? "added to" : "removed from"} the Staff Picks leaderboard`,
-          });
-        },
         onError: () => {
-          // Revert the local state on error
           setSwitchStates(prev => ({
             ...prev,
             [domain.id]: {
               ...prev[domain.id],
-              adminPick: !newValue
+              adminPick: currentState,
+              isAdminPickChanging: false
             }
           }));
         }
       }
     );
-  }, [switchStates, toggleAdminPickMutation, toast]);
+  }, [switchStates, toggleAdminPickMutation]);
 
   const toggleSponsored = useCallback((domain: Domain) => {
-    // Update local state immediately for responsive UI
-    const newValue = !switchStates[domain.id]?.sponsored;
+    const currentState = switchStates[domain.id]?.sponsored ?? domain.isSponsored;
+    const newValue = !currentState;
+    
     setSwitchStates(prev => ({
       ...prev,
       [domain.id]: {
         ...prev[domain.id],
-        sponsored: newValue
+        sponsored: newValue,
+        isSponsoredChanging: true
       }
     }));
 
-    // Make the API call
     toggleSponsoredMutation.mutate(
       { domainId: domain.id, isSponsored: newValue },
       {
-        onSuccess: () => {
-          toast({
-            title: newValue ? "Added to Sponsored" : "Removed from Sponsored",
-            description: `${domain.name} has been ${newValue ? "added to" : "removed from"} the Sponsored leaderboard`,
-          });
-        },
         onError: () => {
-          // Revert the local state on error
           setSwitchStates(prev => ({
             ...prev,
             [domain.id]: {
               ...prev[domain.id],
-              sponsored: !newValue
+              sponsored: currentState,
+              isSponsoredChanging: false
             }
           }));
         }
       }
     );
-  }, [switchStates, toggleSponsoredMutation, toast]);
+  }, [switchStates, toggleSponsoredMutation]);
 
   const handleRemoveDomain = (domain: Domain) => {
-    removeDomainMutation.mutate(domain.id, {
-      onSuccess: () => {
-        toast({
-          title: "Domain Removed",
-          description: `${domain.name} has been removed`,
-        });
-      }
-    });
+    removeDomainMutation.mutate(domain.id);
   };
 
-  // If we're still checking authentication or loading data, show a loading state
   if (isLoading || isLoadingDomains || isLoadingUsers) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -371,10 +406,13 @@ const Admin = () => {
                               <Switch
                                 id={`admin-pick-${domain.id}`}
                                 checked={switchStates[domain.id]?.adminPick ?? domain.isAdminPick}
-                                onCheckedChange={() => toggleAdminPick(domain)}
+                                onCheckedChange={() => !switchStates[domain.id]?.isAdminPickChanging && toggleAdminPick(domain)}
+                                disabled={switchStates[domain.id]?.isAdminPickChanging}
+                                className={switchStates[domain.id]?.isAdminPickChanging ? "opacity-70" : ""}
                               />
                               <Label htmlFor={`admin-pick-${domain.id}`}>
-                                {switchStates[domain.id]?.adminPick ?? domain.isAdminPick ? "Yes" : "No"}
+                                {switchStates[domain.id]?.adminPick ? "Yes" : "No"}
+                                {switchStates[domain.id]?.isAdminPickChanging && "..."}
                               </Label>
                             </div>
                           </td>
@@ -383,10 +421,13 @@ const Admin = () => {
                               <Switch
                                 id={`sponsored-${domain.id}`}
                                 checked={switchStates[domain.id]?.sponsored ?? domain.isSponsored}
-                                onCheckedChange={() => toggleSponsored(domain)}
+                                onCheckedChange={() => !switchStates[domain.id]?.isSponsoredChanging && toggleSponsored(domain)}
+                                disabled={switchStates[domain.id]?.isSponsoredChanging}
+                                className={switchStates[domain.id]?.isSponsoredChanging ? "opacity-70" : ""}
                               />
                               <Label htmlFor={`sponsored-${domain.id}`}>
-                                {switchStates[domain.id]?.sponsored ?? domain.isSponsored ? "Yes" : "No"}
+                                {switchStates[domain.id]?.sponsored ? "Yes" : "No"}
+                                {switchStates[domain.id]?.isSponsoredChanging && "..."}
                               </Label>
                             </div>
                           </td>
