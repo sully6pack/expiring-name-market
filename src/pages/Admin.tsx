@@ -178,7 +178,36 @@ const Admin = () => {
     }
   });
 
+  // Create a local state object to track switch states while mutations are in progress
+  const [switchStates, setSwitchStates] = useState<{
+    [key: string]: { adminPick: boolean; sponsored: boolean }
+  }>({});
+
+  // Initialize switch states from domain data
+  useEffect(() => {
+    if (domains.length > 0) {
+      const initialStates = domains.reduce((acc, domain) => {
+        acc[domain.id] = {
+          adminPick: domain.isAdminPick,
+          sponsored: domain.isSponsored
+        };
+        return acc;
+      }, {} as { [key: string]: { adminPick: boolean; sponsored: boolean } });
+      
+      setSwitchStates(initialStates);
+    }
+  }, [domains]);
+
   const toggleAdminPick = (domain: Domain) => {
+    // Optimistically update the local switch state
+    setSwitchStates(prev => ({
+      ...prev,
+      [domain.id]: {
+        ...prev[domain.id],
+        adminPick: !prev[domain.id]?.adminPick
+      }
+    }));
+
     toggleAdminPickMutation.mutate(
       { domainId: domain.id, isAdminPick: !domain.isAdminPick },
       {
@@ -187,12 +216,31 @@ const Admin = () => {
             title: domain.isAdminPick ? "Removed from Staff Picks" : "Added to Staff Picks",
             description: `${domain.name} has been ${domain.isAdminPick ? "removed from" : "added to"} the Staff Picks leaderboard`,
           });
+        },
+        onError: () => {
+          // Revert the local state on error
+          setSwitchStates(prev => ({
+            ...prev,
+            [domain.id]: {
+              ...prev[domain.id],
+              adminPick: domain.isAdminPick
+            }
+          }));
         }
       }
     );
   };
 
   const toggleSponsored = (domain: Domain) => {
+    // Optimistically update the local switch state
+    setSwitchStates(prev => ({
+      ...prev,
+      [domain.id]: {
+        ...prev[domain.id],
+        sponsored: !prev[domain.id]?.sponsored
+      }
+    }));
+
     toggleSponsoredMutation.mutate(
       { domainId: domain.id, isSponsored: !domain.isSponsored },
       {
@@ -201,6 +249,16 @@ const Admin = () => {
             title: domain.isSponsored ? "Removed from Sponsored" : "Added to Sponsored",
             description: `${domain.name} has been ${domain.isSponsored ? "removed from" : "added to"} the Sponsored leaderboard`,
           });
+        },
+        onError: () => {
+          // Revert the local state on error
+          setSwitchStates(prev => ({
+            ...prev,
+            [domain.id]: {
+              ...prev[domain.id],
+              sponsored: domain.isSponsored
+            }
+          }));
         }
       }
     );
@@ -274,11 +332,11 @@ const Admin = () => {
                             <div className="flex items-center space-x-2">
                               <Switch
                                 id={`admin-pick-${domain.id}`}
-                                checked={domain.isAdminPick}
+                                checked={switchStates[domain.id]?.adminPick ?? domain.isAdminPick}
                                 onCheckedChange={() => toggleAdminPick(domain)}
                               />
                               <Label htmlFor={`admin-pick-${domain.id}`}>
-                                {domain.isAdminPick ? "Yes" : "No"}
+                                {switchStates[domain.id]?.adminPick ?? domain.isAdminPick ? "Yes" : "No"}
                               </Label>
                             </div>
                           </td>
@@ -286,11 +344,11 @@ const Admin = () => {
                             <div className="flex items-center space-x-2">
                               <Switch
                                 id={`sponsored-${domain.id}`}
-                                checked={domain.isSponsored}
+                                checked={switchStates[domain.id]?.sponsored ?? domain.isSponsored}
                                 onCheckedChange={() => toggleSponsored(domain)}
                               />
                               <Label htmlFor={`sponsored-${domain.id}`}>
-                                {domain.isSponsored ? "Yes" : "No"}
+                                {switchStates[domain.id]?.sponsored ?? domain.isSponsored ? "Yes" : "No"}
                               </Label>
                             </div>
                           </td>
