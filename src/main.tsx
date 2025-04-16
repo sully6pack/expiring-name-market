@@ -1,18 +1,15 @@
-
-import { createRoot } from 'react-dom/client'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { mockDomains } from './lib/mockData';
+import { StrictMode } from 'react';
+import { initializeRealtime } from './integrations/supabase/enableRealtime';
 
-// Set global domains directly from mock data
-if (typeof window !== 'undefined') {
-  window.globalDomains = mockDomains;
-  console.log('Main.tsx: Initialized window.globalDomains with', window.globalDomains.length, 'domains');
-}
+// Initialize realtime for domains and likes
+initializeRealtime().catch(console.error);
 
-// Create root and render app
-const rootElement = document.getElementById("root");
-if (!rootElement) throw new Error("Failed to find the root element");
-
-const root = createRoot(rootElement);
-root.render(<App />);
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)

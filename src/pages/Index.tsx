@@ -89,6 +89,22 @@ const Index = () => {
     };
     
     loadDomains();
+
+    // Set up realtime subscription to update likes
+    const channel = supabase
+      .channel('public:domains')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'domains' },
+        (payload) => {
+          // Refresh domains when likes change
+          loadDomains();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
