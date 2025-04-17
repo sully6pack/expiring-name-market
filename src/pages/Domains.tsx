@@ -11,6 +11,7 @@ import DomainFilters from "@/components/domains/DomainFilters";
 import DomainsPagination from "@/components/domains/DomainsPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { seedInitialDomains } from "@/services/seedDomains";
+import { initializeRealtime } from "@/integrations/supabase/enableRealtime";
 
 const Domains = () => {
   const location = useLocation();
@@ -30,66 +31,85 @@ const Domains = () => {
   const domainsPerPage = 20;
 
   useEffect(() => {
-    const fetchDomains = async () => {
-      setIsLoading(true);
-      try {
-        // Seed domains if needed
-        await seedInitialDomains();
-        
-        // Fetch verified domains from Supabase (those available for purchase)
-        const { data, error } = await supabase
-          .from('domains')
-          .select('*')
-          .eq('is_verified', true)
-          .is('buyer_id', null)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error("Error fetching domains:", error);
-          toast.error("Failed to load domains");
-          setIsLoading(false);
-          return;
-        }
-        
-        // Convert database format to app format with proper enum conversion
-        const formattedDomains: Domain[] = data.map(item => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          expirationDate: new Date(item.expiration_date),
-          sellerId: item.seller_id,
-          sellerName: item.seller_name,
-          likes: item.likes || 0,
-          price: item.price,
-          isSponsored: item.is_sponsored || false,
-          isAdminPick: item.is_admin_pick || false,
-          createdAt: new Date(item.created_at),
-          // Convert string category to DomainCategory enum
-          category: validateDomainCategory(item.category),
-          tld: item.tld,
-          verificationStatus: validateVerificationStatus(item.verification_status),
-          isVerified: item.is_verified || false
-        }));
-        
-        const validDomains = filterValidDomains(formattedDomains);
-        
-        setDomains(validDomains);
-        setFilteredDomains(validDomains);
-        setAvailableTLDs(getUniqueTLDs(validDomains));
-        
-        if (validDomains.length > 0) {
-          toast.success(`Loaded ${validDomains.length} domains`);
-        } else {
-          toast.info("No domains available at the moment");
-        }
-      } catch (error) {
-        console.error("Error in fetchDomains:", error);
-        toast.error("An unexpected error occurred while loading domains");
-      } finally {
-        setIsLoading(false);
-      }
+    // Initialize realtime subscriptions
+    initializeRealtime();
+    
+    // Listen for domain update events
+    const handleDomainUpdated = (event: CustomEvent) => {
+      console.log('Domain updated event received in Domains page:', event.detail);
+      fetchDomains();
     };
     
+    window.addEventListener('domain-updated', handleDomainUpdated as EventListener);
+    window.addEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('domain-updated', handleDomainUpdated as EventListener);
+      window.removeEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
+    };
+  }, []);
+
+  const fetchDomains = async () => {
+    setIsLoading(true);
+    try {
+      // Seed domains if needed
+      await seedInitialDomains();
+      
+      // Fetch verified domains from Supabase (those available for purchase)
+      const { data, error } = await supabase
+        .from('domains')
+        .select('*')
+        .eq('is_verified', true)
+        .is('buyer_id', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching domains:", error);
+        toast.error("Failed to load domains");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Convert database format to app format with proper enum conversion
+      const formattedDomains: Domain[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        expirationDate: new Date(item.expiration_date),
+        sellerId: item.seller_id,
+        sellerName: item.seller_name,
+        likes: item.likes || 0,
+        price: item.price,
+        isSponsored: item.is_sponsored || false,
+        isAdminPick: item.is_admin_pick || false,
+        createdAt: new Date(item.created_at),
+        // Convert string category to DomainCategory enum
+        category: validateDomainCategory(item.category),
+        tld: item.tld,
+        verificationStatus: validateVerificationStatus(item.verification_status),
+        isVerified: item.is_verified || false
+      }));
+      
+      const validDomains = filterValidDomains(formattedDomains);
+      
+      setDomains(validDomains);
+      setFilteredDomains(validDomains);
+      setAvailableTLDs(getUniqueTLDs(validDomains));
+      
+      if (validDomains.length > 0) {
+        toast.success(`Loaded ${validDomains.length} domains`);
+      } else {
+        toast.info("No domains available at the moment");
+      }
+    } catch (error) {
+      console.error("Error in fetchDomains:", error);
+      toast.error("An unexpected error occurred while loading domains");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchDomains();
   }, [location.pathname]); // Reload whenever the path changes to refresh domains
 
