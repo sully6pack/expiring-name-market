@@ -60,7 +60,43 @@ export function useDomainLike(domain: Domain) {
     };
 
     fetchLikeStatus();
-  }, [appUser, domain.id, domain.name]);
+  }, [appUser, domain.id, domain.name, domain.likes]);
+
+  // Listen for global like/unlike events and update state accordingly
+  useEffect(() => {
+    const handleLikesChanged = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id) {
+        console.log(`Global event: domain ${domain.id} likes changed to ${event.detail.likes}`);
+        setLikes(event.detail.likes);
+      }
+    };
+
+    const handleLikeAdded = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id && appUser && event.detail.userId === appUser.id) {
+        console.log(`Global event: user ${appUser.id} liked domain ${domain.id}`);
+        setIsLiked(true);
+      }
+    };
+
+    const handleLikeRemoved = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id && appUser && event.detail.userId === appUser.id) {
+        console.log(`Global event: user ${appUser.id} unliked domain ${domain.id}`);
+        setIsLiked(false);
+      }
+    };
+
+    // Add event listeners for global events
+    window.addEventListener('domain-likes-changed', handleLikesChanged as EventListener);
+    window.addEventListener('domain-like-added', handleLikeAdded as EventListener);
+    window.addEventListener('domain-like-removed', handleLikeRemoved as EventListener);
+
+    return () => {
+      // Remove event listeners
+      window.removeEventListener('domain-likes-changed', handleLikesChanged as EventListener);
+      window.removeEventListener('domain-like-added', handleLikeAdded as EventListener);
+      window.removeEventListener('domain-like-removed', handleLikeRemoved as EventListener);
+    };
+  }, [domain.id, appUser]);
 
   // Listen for real-time updates to likes
   useEffect(() => {
@@ -80,7 +116,9 @@ export function useDomainLike(domain: Domain) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Domain ${domain.id} channel status:`, status);
+      });
 
     // Also listen for changes in the domain_likes table to update isLiked state
     let likesChannel = null;
@@ -95,7 +133,7 @@ export function useDomainLike(domain: Domain) {
             filter: `domain_id=eq.${domain.id} AND user_id=eq.${appUser.id}` 
           },
           (payload) => {
-            console.log(`Domain likes change detected: ${payload.eventType}`);
+            console.log(`Domain likes change detected for user ${appUser.id}: ${payload.eventType}`);
             if (payload.eventType === 'INSERT') {
               console.log(`User ${appUser.id} liked domain ${domain.id}`);
               setIsLiked(true);
@@ -105,7 +143,9 @@ export function useDomainLike(domain: Domain) {
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log(`Domain likes ${domain.id} channel status:`, status);
+        });
     }
 
     // Cleanup on unmount
@@ -157,6 +197,17 @@ export function useDomainLike(domain: Domain) {
             toast.error("You've already liked this domain");
             // Refresh like status to sync UI with actual DB state
             setIsLiked(true);
+            
+            // Refetch current like count to ensure consistency
+            const { data: domainData } = await supabase
+              .from('domains')
+              .select('likes')
+              .eq('id', domain.id)
+              .single();
+              
+            if (domainData && typeof domainData.likes === 'number') {
+              setLikes(domainData.likes);
+            }
           } else {
             toast.error("Failed to like domain. Please try again.");
           }
