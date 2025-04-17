@@ -78,6 +78,8 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
               className="flex items-center gap-1"
               onClick={toggleLike}
               disabled={!appUser || isLoading}
+              aria-label={isLiked ? "Unlike" : "Like"}
+              title={isLiked ? "Unlike" : "Like"}
             >
               <Heart
                 className={isLiked ? "fill-red-500 text-red-500" : ""}
