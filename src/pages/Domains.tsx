@@ -140,8 +140,13 @@ const Domains = () => {
       result = result.filter(domain => domain.tld === tldFilter);
     }
     
-    // Apply sorting
+    // First sort by sponsored status to prioritize sponsored domains
     result.sort((a, b) => {
+      // Always show sponsored domains first
+      if (a.isSponsored && !b.isSponsored) return -1;
+      if (!a.isSponsored && b.isSponsored) return 1;
+      
+      // Then apply the selected sort order for domains with the same sponsored status
       switch (sortOrder) {
         case "expiration-asc":
           return a.expirationDate.getTime() - b.expirationDate.getTime();
