@@ -14,6 +14,19 @@ export const enableRealtimeForDomains = async () => {
           if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
             console.log(`Domain ${payload.new.name} updated`);
             
+            // Log changes to likes
+            if (payload.new.likes !== payload.old.likes) {
+              console.log(`Domain ${payload.new.name} likes changed: ${payload.old.likes} → ${payload.new.likes}`);
+              
+              // Dispatch a custom event to notify components
+              window.dispatchEvent(new CustomEvent('domain-likes-changed', { 
+                detail: { 
+                  domainId: payload.new.id,
+                  likes: payload.new.likes 
+                } 
+              }));
+            }
+            
             // Log changes to admin_pick and sponsored status
             if (payload.new.is_admin_pick !== payload.old.is_admin_pick) {
               console.log(`Domain ${payload.new.name} staff pick status changed: ${payload.old.is_admin_pick} → ${payload.new.is_admin_pick}`);
@@ -68,8 +81,24 @@ export const enableRealtimeForLikes = async () => {
           console.log('Change received for domain_likes!', payload);
           if (payload.eventType === 'INSERT') {
             console.log(`New like added for domain ID: ${payload.new.domain_id} by user ID: ${payload.new.user_id}`);
+            
+            // You could dispatch a custom event here if needed
+            window.dispatchEvent(new CustomEvent('domain-like-added', { 
+              detail: { 
+                domainId: payload.new.domain_id,
+                userId: payload.new.user_id 
+              } 
+            }));
           } else if (payload.eventType === 'DELETE') {
             console.log(`Like removed for domain ID: ${payload.old.domain_id} by user ID: ${payload.old.user_id}`);
+            
+            // You could dispatch a custom event here if needed
+            window.dispatchEvent(new CustomEvent('domain-like-removed', { 
+              detail: { 
+                domainId: payload.old.domain_id,
+                userId: payload.old.user_id 
+              } 
+            }));
           }
         }
       )

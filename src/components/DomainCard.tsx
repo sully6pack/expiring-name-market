@@ -83,7 +83,7 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
                 className={isLiked ? "fill-red-500 text-red-500" : ""}
                 size={18}
               />
-              {likes}
+              <span>{likes}</span>
             </Button>
           </div>
           <Button onClick={handleBuy}>Buy Now</Button>

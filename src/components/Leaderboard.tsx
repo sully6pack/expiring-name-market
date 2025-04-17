@@ -38,17 +38,19 @@ const LeaderboardItem = ({ domain }: { domain: Domain }) => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <Button
+              variant="ghost" 
+              size="sm"
               onClick={toggleLike}
               disabled={!appUser || isLoading}
-              className="flex items-center gap-1 text-xs bg-transparent border-0 cursor-pointer p-0 hover:text-red-500"
+              className="flex items-center gap-1 text-xs h-6 p-1"
             >
               <Heart 
                 size={12} 
-                className={isLiked ? "text-red-500 fill-red-500" : "text-red-500"} 
+                className={isLiked ? "text-red-500 fill-red-500" : "text-gray-500"} 
               />
-              {likes}
-            </button>
+              <span>{likes}</span>
+            </Button>
             <Button 
               variant="ghost" 
               size="sm" 
