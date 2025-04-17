@@ -4,6 +4,8 @@ import { supabase } from "./client";
 // Enable realtime for our application
 export const enableRealtimeForDomains = async () => {
   try {
+    console.log("Setting up domain realtime listeners");
+    
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
       .channel('public:domains')
@@ -72,6 +74,8 @@ export const enableRealtimeForDomains = async () => {
 // Enable realtime for domain_likes table
 export const enableRealtimeForLikes = async () => {
   try {
+    console.log("Setting up domain_likes realtime listeners");
+    
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
       .channel('public:domain_likes')
@@ -114,6 +118,7 @@ export const enableRealtimeForLikes = async () => {
 
 // Initialize realtime
 export const initializeRealtime = async () => {
+  console.log("Initializing realtime for domains and likes");
   await enableRealtimeForDomains();
   await enableRealtimeForLikes();
   console.log('Realtime initialized for domains and likes');
