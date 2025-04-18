@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -27,7 +26,10 @@ const Index = () => {
 
   useEffect(() => {
     // Initialize realtime subscriptions
-    initializeRealtime();
+    const initRealtime = async () => {
+      await initializeRealtime();
+    };
+    initRealtime();
     
     // Listen for domain update events
     const handleDomainUpdated = (event: CustomEvent) => {
@@ -39,8 +41,13 @@ const Index = () => {
     window.addEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
     
     return () => {
+      // Clean up event listeners
       window.removeEventListener('domain-updated', handleDomainUpdated as EventListener);
       window.removeEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
+      
+      // Clean up Supabase channels
+      supabase.removeChannel(supabase.channel('public:domains'));
+      supabase.removeChannel(supabase.channel('public:domain_likes'));
     };
   }, []);
 

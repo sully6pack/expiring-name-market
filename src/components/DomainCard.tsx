@@ -74,17 +74,19 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center gap-1"
+              className={`flex items-center gap-1 ${isLiked ? 'text-red-500' : 'text-gray-500'}`}
               onClick={toggleLike}
               disabled={!appUser || isLoading}
               aria-label={isLiked ? "Unlike" : "Like"}
               title={isLiked ? "Unlike" : "Like"}
             >
               <Heart
-                className={isLiked ? "fill-red-500 text-red-500" : "text-gray-500"}
+                className={`transition-colors duration-200 ${
+                  isLiked ? "fill-red-500 text-red-500" : "fill-transparent text-gray-500"
+                }`}
                 size={18}
               />
-              <span>{likes}</span>
+              <span className={isLiked ? "text-red-500" : "text-gray-500"}>{likes}</span>
             </Button>
           </div>
           <Button onClick={handleBuy}>Buy Now</Button>
