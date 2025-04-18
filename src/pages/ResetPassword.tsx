@@ -41,7 +41,7 @@ const ResetPassword = () => {
     try {
       // With Supabase, the reset link already contains the token in the URL hash
       // We don't need to extract it, Supabase client handles it
-      const success = await resetPassword(password);
+      const success = await resetPassword(password); //CHANGEs
       
       if (success) {
         setSuccess(true);
