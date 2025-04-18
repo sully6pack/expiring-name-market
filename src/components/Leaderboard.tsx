@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Domain, LeaderboardType } from "@/types";
@@ -49,7 +48,7 @@ const LeaderboardItem = ({ domain }: { domain: Domain }) => {
             >
               <Heart 
                 size={12} 
-                className={isLiked ? "text-red-500 fill-red-500" : "text-gray-500"} 
+                className={isLiked ? "fill-red-500 text-red-500" : "text-gray-500"} 
               />
               <span>{likes}</span>
             </Button>

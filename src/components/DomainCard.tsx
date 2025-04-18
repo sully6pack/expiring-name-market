@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,7 @@ const DomainCard = ({ domain, showExpiration = true }: DomainCardProps) => {
               title={isLiked ? "Unlike" : "Like"}
             >
               <Heart
-                className={isLiked ? "fill-red-500 text-red-500" : ""}
+                className={isLiked ? "fill-red-500 text-red-500" : "text-gray-500"}
                 size={18}
               />
               <span>{likes}</span>

@@ -1,4 +1,3 @@
-
 import { Domain } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, getDaysUntilExpiration } from "@/utils/validation";
@@ -98,7 +97,7 @@ const CondensedDomainsList = ({ domains, isLoading }: CondensedDomainsListProps)
                     title={isLiked ? "Unlike" : "Like"}
                   >
                     <Heart
-                      className={isLiked ? "fill-red-500 text-red-500" : ""}
+                      className={isLiked ? "fill-red-500 text-red-500" : "text-gray-500"}
                       size={18}
                     />
                     <span>{likes}</span>
