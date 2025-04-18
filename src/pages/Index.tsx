@@ -118,8 +118,8 @@ const Index = () => {
       <HeroSection />
       <QuickSearch availableTLDs={availableTLDs} />
       <HowItWorksSection />
-      <FeaturedDomains domains={featuredDomains} isLoading={isLoading} />
       <LeaderboardSection mostLiked={mostLiked} adminPicks={adminPicks} sponsored={sponsored} />
+      <FeaturedDomains domains={featuredDomains} isLoading={isLoading} />
       <NewsletterSignup />
       <Footer />
     </div>
