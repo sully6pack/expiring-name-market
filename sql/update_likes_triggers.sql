@@ -1,4 +1,5 @@
 
+
 -- Check if triggers exist and if not, create them
 
 -- Create function to increment domain likes
@@ -62,3 +63,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.domain_likes;
 -- Enable full replica identity for realtime to work properly
 ALTER TABLE public.domains REPLICA IDENTITY FULL;
 ALTER TABLE public.domain_likes REPLICA IDENTITY FULL;
+
