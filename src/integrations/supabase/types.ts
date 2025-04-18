@@ -155,6 +155,33 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_name: string
+          id: string
+          source: string | null
+          subscribed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_name: string
+          id?: string
+          source?: string | null
+          subscribed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          source?: string | null
+          subscribed?: boolean | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           company: string | null

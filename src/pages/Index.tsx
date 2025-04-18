@@ -7,6 +7,7 @@ import QuickSearch from "@/components/home/QuickSearch";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FeaturedDomains from "@/components/home/FeaturedDomains";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import { Domain, LeaderboardType, DomainCategory, VerificationStatus } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
@@ -119,6 +120,7 @@ const Index = () => {
       <HowItWorksSection />
       <FeaturedDomains domains={featuredDomains} isLoading={isLoading} />
       <LeaderboardSection mostLiked={mostLiked} adminPicks={adminPicks} sponsored={sponsored} />
+      <NewsletterSignup />
       <Footer />
     </div>
   );
