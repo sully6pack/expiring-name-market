@@ -43,7 +43,7 @@ const LeaderboardItem = ({ domain }: { domain: Domain }) => {
               size="sm"
               onClick={toggleLike}
               disabled={!appUser || isLoading}
-              className="flex items-center gap-1 text-xs h-6 p-1"
+              className={`flex items-center gap-1 text-xs h-6 p-1 ${isLiked ? 'text-red-500' : 'text-gray-500'}`}
               aria-label={isLiked ? "Unlike" : "Like"}
               title={isLiked ? "Unlike" : "Like"}
             >

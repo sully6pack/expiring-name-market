@@ -2,14 +2,14 @@
 import { supabase } from "./client";
 import { toast } from "sonner";
 
-// Enable realtime for our application
+// Enable realtime for domains table
 export const enableRealtimeForDomains = async () => {
   try {
     console.log("Setting up domain realtime listeners");
     
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
-      .channel('public:domains')
+      .channel('domains-channel')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'domains' },
         (payload) => {
@@ -31,31 +31,6 @@ export const enableRealtimeForDomains = async () => {
               }));
             }
             
-            // Log changes to admin_pick and sponsored status
-            if (payload.new.is_admin_pick !== payload.old.is_admin_pick) {
-              console.log(`Domain ${payload.new.name} staff pick status changed: ${payload.old.is_admin_pick} → ${payload.new.is_admin_pick}`);
-              
-              // Dispatch a custom event to notify components
-              window.dispatchEvent(new CustomEvent('domain-admin-pick-changed', { 
-                detail: { 
-                  domainId: payload.new.id,
-                  isAdminPick: payload.new.is_admin_pick 
-                } 
-              }));
-            }
-            
-            if (payload.new.is_sponsored !== payload.old.is_sponsored) {
-              console.log(`Domain ${payload.new.name} sponsored status changed: ${payload.old.is_sponsored} → ${payload.new.is_sponsored}`);
-              
-              // Dispatch a custom event to notify components
-              window.dispatchEvent(new CustomEvent('domain-sponsored-changed', { 
-                detail: { 
-                  domainId: payload.new.id,
-                  isSponsored: payload.new.is_sponsored 
-                } 
-              }));
-            }
-            
             // Dispatch a generic domain updated event
             window.dispatchEvent(new CustomEvent('domain-updated', { 
               detail: payload.new
@@ -69,7 +44,7 @@ export const enableRealtimeForDomains = async () => {
           console.log('Successfully subscribed to domains table changes');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to domains table changes');
-          toast.error('Error connecting to real-time updates. Some features may not work properly.');
+          toast.error('Error connecting to real-time updates');
         }
       });
       
@@ -77,7 +52,7 @@ export const enableRealtimeForDomains = async () => {
     return true;
   } catch (error) {
     console.error('Error enabling realtime for domains:', error);
-    toast.error('Error setting up real-time updates. Some features may not work properly.');
+    toast.error('Error setting up real-time updates');
     return false;
   }
 };
@@ -89,7 +64,7 @@ export const enableRealtimeForLikes = async () => {
     
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
-      .channel('public:domain_likes')
+      .channel('domain-likes-channel')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'domain_likes' },
         (payload) => {
@@ -124,7 +99,7 @@ export const enableRealtimeForLikes = async () => {
           console.log('Successfully subscribed to domain_likes table changes');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to domain_likes table changes');
-          toast.error('Error connecting to real-time updates. Some features may not work properly.');
+          toast.error('Error connecting to real-time updates');
         }
       });
       
@@ -132,7 +107,7 @@ export const enableRealtimeForLikes = async () => {
     return true;
   } catch (error) {
     console.error('Error enabling realtime for domain_likes:', error);
-    toast.error('Error setting up real-time updates. Some features may not work properly.');
+    toast.error('Error setting up real-time updates');
     return false;
   }
 };
@@ -140,6 +115,15 @@ export const enableRealtimeForLikes = async () => {
 // Initialize realtime
 export const initializeRealtime = async () => {
   console.log("Initializing realtime for domains and likes");
+  
+  // Clean up any existing channels first to prevent duplicates
+  try {
+    supabase.removeChannel(supabase.channel('domains-channel'));
+    supabase.removeChannel(supabase.channel('domain-likes-channel'));
+  } catch (error) {
+    console.log('No existing channels to remove');
+  }
+  
   const domainsResult = await enableRealtimeForDomains();
   const likesResult = await enableRealtimeForLikes();
   

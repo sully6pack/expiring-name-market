@@ -10,46 +10,37 @@ export function useDomainLike(domain: Domain) {
   const [likes, setLikes] = useState<number>(domain.likes || 0);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
-  // Fetch current like status and count when component mounts or domain/user changes
+  // Initialize like status and count
   useEffect(() => {
+    // Update likes when domain.likes changes externally
+    if (domain.likes !== undefined && domain.likes !== likes) {
+      setLikes(domain.likes);
+    }
+    
     const fetchLikeStatus = async () => {
       if (!appUser || !domain.id) {
         setIsLiked(false);
-        setLikes(domain.likes || 0);
         return;
       }
 
       setIsLoading(true);
       try {
         // Check if user has liked this domain
-        const { data: likeData, error: likeError } = await supabase
+        const { data, error } = await supabase
           .from('domain_likes')
           .select('*')
           .eq('domain_id', domain.id)
           .eq('user_id', appUser.id)
-          .single();
+          .maybeSingle();  // Use maybeSingle instead of single to avoid errors
 
-        // Handle not found case gracefully
-        if (likeError && likeError.code !== 'PGRST116') {
-          console.error("Error checking like status:", likeError);
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking like status:", error);
         }
 
-        // Fetch current likes count
-        const { data: domainData, error: domainError } = await supabase
-          .from('domains')
-          .select('likes')
-          .eq('id', domain.id)
-          .single();
-
-        if (domainError) {
-          console.error("Error fetching domain likes:", domainError);
-        } else if (domainData && typeof domainData.likes === 'number') {
-          setLikes(domainData.likes);
-        }
-
-        // Update liked state
-        setIsLiked(!!likeData);
+        // Update liked state based on whether data was found
+        setIsLiked(!!data);
       } catch (error) {
         console.error("Error in fetchLikeStatus:", error);
       } finally {
@@ -60,7 +51,30 @@ export function useDomainLike(domain: Domain) {
     fetchLikeStatus();
   }, [appUser, domain.id, domain.likes]);
 
-  // Toggle like function
+  // Listen for real-time updates
+  useEffect(() => {
+    if (!domain.id) return;
+
+    // Set up listener for domain like changes
+    const channel = supabase
+      .channel(`domain_likes_${domain.id}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'domains', filter: `id=eq.${domain.id}` },
+        (payload: any) => {
+          if (payload.new && typeof payload.new.likes === 'number') {
+            console.log(`Real-time update for domain ${domain.id}: likes = ${payload.new.likes}`);
+            setLikes(payload.new.likes);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [domain.id]);
+
+  // Toggle like function with improved error handling and optimistic updates
   const toggleLike = async () => {
     if (!appUser) {
       toast.error("Please sign in to like domains");
@@ -78,67 +92,66 @@ export function useDomainLike(domain: Domain) {
     }
 
     setIsLoading(true);
+    // Store the current action for handling errors
+    const action = isLiked ? 'unlike' : 'like';
+    setLastAction(action);
+    
     try {
+      // Optimistically update UI
+      setIsLiked(!isLiked);
+      setLikes(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+      
       if (!isLiked) {
         // Add like
-        const { error: likeError } = await supabase
+        const { error } = await supabase
           .from('domain_likes')
           .insert({ 
             domain_id: domain.id, 
             user_id: appUser.id 
           });
           
-        if (likeError) {
-          // Handle unique constraint violation
-          if (likeError.code === '23505') {
+        if (error) {
+          // Handle unique constraint violation (already liked)
+          if (error.code === '23505') {
             console.log("User already liked this domain");
-            setIsLiked(true);
-            
-            // Refetch current like count
-            const { data: domainData } = await supabase
-              .from('domains')
-              .select('likes')
-              .eq('id', domain.id)
-              .single();
-              
-            if (domainData && typeof domainData.likes === 'number') {
-              setLikes(domainData.likes);
-            }
+            // No need to revert UI as it's already correct
           } else {
-            console.error("Error adding like:", likeError);
+            console.error("Error adding like:", error);
+            // Revert optimistic update
+            setIsLiked(false);
+            setLikes(prev => Math.max(0, prev - 1));
             toast.error("Failed to like domain");
-            return;
           }
         } else {
-          // Optimistically update UI state
-          setIsLiked(true);
-          setLikes(prev => prev + 1);
           toast.success(`You liked ${domain.name}`);
         }
       } else {
         // Remove like
-        const { error: unlikeError } = await supabase
+        const { error } = await supabase
           .from('domain_likes')
           .delete()
           .eq('domain_id', domain.id)
           .eq('user_id', appUser.id);
           
-        if (unlikeError) {
-          console.error("Error removing like:", unlikeError);
+        if (error) {
+          console.error("Error removing like:", error);
+          // Revert optimistic update
+          setIsLiked(true);
+          setLikes(prev => prev + 1);
           toast.error("Failed to unlike domain");
-          return;
+        } else {
+          toast.success(`You unliked ${domain.name}`);
         }
-        
-        // Optimistically update UI state
-        setIsLiked(false);
-        setLikes(prev => Math.max(0, prev - 1));
-        toast.success(`You unliked ${domain.name}`);
       }
     } catch (error) {
       console.error("Error in toggleLike:", error);
+      // Revert optimistic update on error
+      setIsLiked(action === 'unlike');
+      setLikes(prev => action === 'unlike' ? prev + 1 : Math.max(0, prev - 1));
       toast.error("Failed to update like status");
     } finally {
       setIsLoading(false);
+      setLastAction(null);
     }
   };
 
