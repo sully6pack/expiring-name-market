@@ -7,6 +7,7 @@ import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FeaturedDomains from "@/components/home/FeaturedDomains";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import AdvertisementSection from "@/components/home/AdvertisementSection";
 import { Domain, LeaderboardType, DomainCategory, VerificationStatus } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
@@ -25,13 +26,11 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize realtime subscriptions
     const initRealtime = async () => {
       await initializeRealtime();
     };
     initRealtime();
     
-    // Listen for domain update events
     const handleDomainUpdated = (event: CustomEvent) => {
       console.log('Domain updated event received:', event.detail);
       loadDomains();
@@ -41,11 +40,9 @@ const Index = () => {
     window.addEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
     
     return () => {
-      // Clean up event listeners
       window.removeEventListener('domain-updated', handleDomainUpdated as EventListener);
       window.removeEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
       
-      // Clean up Supabase channels
       supabase.removeChannel(supabase.channel('public:domains'));
       supabase.removeChannel(supabase.channel('public:domain_likes'));
     };
@@ -55,10 +52,8 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      // Seed domains if needed
       await seedInitialDomains();
       
-      // Get all available domains that are verified and not purchased
       const { data, error } = await supabase
         .from('domains')
         .select('*')
@@ -73,7 +68,6 @@ const Index = () => {
         return;
       }
       
-      // Convert database format to app format with proper enum conversion
       const formattedDomains: Domain[] = data.map(item => ({
         id: item.id,
         name: item.name,
@@ -86,7 +80,6 @@ const Index = () => {
         isSponsored: item.is_sponsored || false,
         isAdminPick: item.is_admin_pick || false,
         createdAt: new Date(item.created_at),
-        // Convert string category to DomainCategory enum
         category: validateDomainCategory(item.category),
         tld: item.tld,
         verificationStatus: validateVerificationStatus(item.verification_status),
@@ -123,6 +116,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <HeroSection />
+      <AdvertisementSection />
       <QuickSearch availableTLDs={availableTLDs} />
       <HowItWorksSection />
       <LeaderboardSection mostLiked={mostLiked} adminPicks={adminPicks} sponsored={sponsored} />
