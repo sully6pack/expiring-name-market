@@ -10,11 +10,22 @@ import DomainManagementTab from "@/components/admin/DomainManagementTab";
 import UserManagementTab from "@/components/admin/UserManagementTab";
 import FAQManagementTab from "@/components/admin/FAQManagementTab";
 import AdvertisementManagementTab from "@/components/admin/AdvertisementManagementTab";
+import { useQuery } from "@tanstack/react-query";
+import { getUserManagementInfo } from "@/services/adminService";
 
 const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch users for user management tab
+  const { 
+    data: users = [],
+    isLoading: isLoadingUsers
+  } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: getUserManagementInfo,
+  });
 
   useEffect(() => {
     if (!currentUser || !currentUser.isAdmin) {
@@ -29,7 +40,7 @@ const Admin = () => {
     }
   }, [navigate, toast]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingUsers) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -59,7 +70,7 @@ const Admin = () => {
           </TabsContent>
           
           <TabsContent value="users">
-            <UserManagementTab />
+            <UserManagementTab users={users} />
           </TabsContent>
           
           <TabsContent value="faqs">
