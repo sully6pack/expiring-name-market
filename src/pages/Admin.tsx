@@ -17,6 +17,7 @@ import {
 } from "@/services/adminService";
 import UserManagementTab from "@/components/admin/UserManagementTab";
 import FAQManagementTab from "@/components/admin/FAQManagementTab";
+import AdvertisementManagementTab from "@/components/admin/AdvertisementManagementTab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentUser } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
@@ -372,6 +373,7 @@ const Admin = () => {
             <TabsTrigger value="domains">Manage Domains</TabsTrigger>
             <TabsTrigger value="users">Manage Users</TabsTrigger>
             <TabsTrigger value="faqs">Manage FAQs</TabsTrigger>
+            <TabsTrigger value="advertisements">Manage Ads</TabsTrigger>
             <TabsTrigger value="stats">Statistics</TabsTrigger>
           </TabsList>
           
@@ -456,6 +458,17 @@ const Admin = () => {
           
           <TabsContent value="faqs">
             <FAQManagementTab />
+          </TabsContent>
+
+          <TabsContent value="advertisements">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advertisements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AdvertisementManagementTab />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="stats">
