@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Advertisement } from "@/types/advertisement";
 import AdvertisementBanner from "./AdvertisementBanner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdvertisementSection = () => {
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
@@ -12,12 +12,14 @@ const AdvertisementSection = () => {
     const fetchAdvertisements = async () => {
       setIsLoading(true);
       try {
+        const currentDate = new Date().toISOString();
+        
         const { data, error } = await supabase
           .from('advertisements')
           .select('*')
           .eq('is_active', true)
-          .lte('start_date', new Date().toISOString())
-          .or(`end_date.gt.${new Date().toISOString()},end_date.is.null`)
+          .lte('start_date', currentDate)
+          .or(`end_date.gt.${currentDate},end_date.is.null`)
           .order('created_at', { ascending: false })
           .limit(4);
 

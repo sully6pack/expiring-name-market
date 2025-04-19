@@ -14,8 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Advertisement } from "@/types/advertisement";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -30,6 +31,7 @@ const AdvertisementManagementTab = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,10 +95,13 @@ const AdvertisementManagementTab = () => {
   }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
     try {
+      console.log("Creating advertisement with values:", values);
+      
       const { error } = await supabase
         .from('advertisements')
-        .insert([{
+        .insert({
           title: values.title,
           image_url: values.imageUrl,
           target_url: values.targetUrl,
@@ -105,7 +110,7 @@ const AdvertisementManagementTab = () => {
           is_active: true,
           clicks: 0,
           impressions: 0,
-        }]);
+        });
 
       if (error) {
         console.error("Error creating advertisement:", error);
@@ -132,6 +137,8 @@ const AdvertisementManagementTab = () => {
         description: "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -304,7 +311,13 @@ const AdvertisementManagementTab = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">Create Advertisement</Button>
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating..." : "Create Advertisement"}
+                </Button>
               </form>
             </Form>
           </DialogContent>
