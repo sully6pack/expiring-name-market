@@ -29,6 +29,7 @@ const AdvertisementManagementTab = () => {
   const [ads, setAds] = useState<Advertisement[]>([]);
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,27 +42,49 @@ const AdvertisementManagementTab = () => {
   });
 
   const fetchAds = async () => {
-    const { data, error } = await supabase
-      .from('advertisements')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('advertisements')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error("Error fetching advertisements:", error);
+        toast({
+          title: "Error fetching advertisements",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data) {
+        // Map database fields to our Advertisement type
+        const formattedAds: Advertisement[] = data.map(ad => ({
+          id: ad.id,
+          title: ad.title,
+          imageUrl: ad.image_url,
+          targetUrl: ad.target_url,
+          clicks: ad.clicks || 0,
+          impressions: ad.impressions || 0,
+          isActive: ad.is_active || false,
+          startDate: new Date(ad.start_date),
+          endDate: ad.end_date ? new Date(ad.end_date) : undefined,
+          createdAt: ad.created_at ? new Date(ad.created_at) : new Date(),
+        }));
+        
+        setAds(formattedAds);
+      }
+    } catch (error) {
+      console.error("Unexpected error fetching advertisements:", error);
       toast({
         title: "Error fetching advertisements",
-        description: error.message,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-      return;
-    }
-
-    if (data) {
-      setAds(data.map(ad => ({
-        ...ad,
-        startDate: new Date(ad.start_date),
-        endDate: ad.end_date ? new Date(ad.end_date) : undefined,
-        createdAt: new Date(ad.created_at),
-      })));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,57 +93,79 @@ const AdvertisementManagementTab = () => {
   }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { error } = await supabase
-      .from('advertisements')
-      .insert([{
-        title: values.title,
-        image_url: values.imageUrl,
-        target_url: values.targetUrl,
-        start_date: values.startDate.toISOString(),
-        end_date: values.endDate?.toISOString(),
-        is_active: true,
-      }]);
+    try {
+      const { error } = await supabase
+        .from('advertisements')
+        .insert([{
+          title: values.title,
+          image_url: values.imageUrl,
+          target_url: values.targetUrl,
+          start_date: values.startDate.toISOString(),
+          end_date: values.endDate?.toISOString(),
+          is_active: true,
+          clicks: 0,
+          impressions: 0,
+        }]);
 
-    if (error) {
+      if (error) {
+        console.error("Error creating advertisement:", error);
+        toast({
+          title: "Error creating advertisement",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Advertisement created",
+        description: "The advertisement has been created successfully.",
+      });
+      
+      form.reset();
+      setIsDialogOpen(false);
+      fetchAds();
+    } catch (error) {
+      console.error("Unexpected error creating advertisement:", error);
       toast({
         title: "Error creating advertisement",
-        description: error.message,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Advertisement created",
-      description: "The advertisement has been created successfully.",
-    });
-    
-    form.reset();
-    setIsDialogOpen(false);
-    fetchAds();
   };
 
   const toggleAdStatus = async (ad: Advertisement) => {
-    const { error } = await supabase
-      .from('advertisements')
-      .update({ is_active: !ad.isActive })
-      .eq('id', ad.id);
+    try {
+      const { error } = await supabase
+        .from('advertisements')
+        .update({ is_active: !ad.isActive })
+        .eq('id', ad.id);
 
-    if (error) {
+      if (error) {
+        console.error("Error updating advertisement:", error);
+        toast({
+          title: "Error updating advertisement",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Advertisement updated",
+        description: `Advertisement has been ${!ad.isActive ? 'activated' : 'deactivated'}.`,
+      });
+
+      fetchAds();
+    } catch (error) {
+      console.error("Unexpected error updating advertisement:", error);
       toast({
         title: "Error updating advertisement",
-        description: error.message,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Advertisement updated",
-      description: `Advertisement has been ${!ad.isActive ? 'activated' : 'deactivated'}.`,
-    });
-
-    fetchAds();
   };
 
   return (
@@ -266,53 +311,63 @@ const AdvertisementManagementTab = () => {
         </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Start Date</TableHead>
-            <TableHead>End Date</TableHead>
-            <TableHead className="text-right">Impressions</TableHead>
-            <TableHead className="text-right">Clicks</TableHead>
-            <TableHead className="text-right">CTR</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {ads.map((ad) => (
-            <TableRow key={ad.id}>
-              <TableCell>{ad.title}</TableCell>
-              <TableCell>{format(ad.startDate, "PPP")}</TableCell>
-              <TableCell>{ad.endDate ? format(ad.endDate, "PPP") : "No end date"}</TableCell>
-              <TableCell className="text-right">{ad.impressions.toLocaleString()}</TableCell>
-              <TableCell className="text-right">{ad.clicks.toLocaleString()}</TableCell>
-              <TableCell className="text-right">
-                {ad.impressions > 0
-                  ? `${((ad.clicks / ad.impressions) * 100).toFixed(2)}%`
-                  : "0%"}
-              </TableCell>
-              <TableCell>
-                <span className={cn(
-                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  ad.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                )}>
-                  {ad.isActive ? "Active" : "Inactive"}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleAdStatus(ad)}
-                >
-                  {ad.isActive ? "Deactivate" : "Activate"}
-                </Button>
-              </TableCell>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-8">
+          <p>Loading advertisements...</p>
+        </div>
+      ) : ads.length === 0 ? (
+        <div className="text-center py-8">
+          <p>No advertisements found. Create your first advertisement using the button above.</p>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Start Date</TableHead>
+              <TableHead>End Date</TableHead>
+              <TableHead className="text-right">Impressions</TableHead>
+              <TableHead className="text-right">Clicks</TableHead>
+              <TableHead className="text-right">CTR</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {ads.map((ad) => (
+              <TableRow key={ad.id}>
+                <TableCell>{ad.title}</TableCell>
+                <TableCell>{format(ad.startDate, "PPP")}</TableCell>
+                <TableCell>{ad.endDate ? format(ad.endDate, "PPP") : "No end date"}</TableCell>
+                <TableCell className="text-right">{ad.impressions.toLocaleString()}</TableCell>
+                <TableCell className="text-right">{ad.clicks.toLocaleString()}</TableCell>
+                <TableCell className="text-right">
+                  {ad.impressions > 0
+                    ? `${((ad.clicks / ad.impressions) * 100).toFixed(2)}%`
+                    : "0%"}
+                </TableCell>
+                <TableCell>
+                  <span className={cn(
+                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                    ad.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  )}>
+                    {ad.isActive ? "Active" : "Inactive"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleAdStatus(ad)}
+                  >
+                    {ad.isActive ? "Deactivate" : "Activate"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };
