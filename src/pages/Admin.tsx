@@ -57,7 +57,7 @@ const Admin = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
         <Tabs defaultValue="domains" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex flex-wrap w-full">
             <TabsTrigger value="domains">Manage Domains</TabsTrigger>
             <TabsTrigger value="users">Manage Users</TabsTrigger>
             <TabsTrigger value="faqs">Manage FAQs</TabsTrigger>
