@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      advertisements: {
+        Row: {
+          clicks: number | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          image_url: string
+          impressions: number | null
+          is_active: boolean | null
+          start_date: string
+          target_url: string
+          title: string
+        }
+        Insert: {
+          clicks?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          image_url: string
+          impressions?: number | null
+          is_active?: boolean | null
+          start_date: string
+          target_url: string
+          title: string
+        }
+        Update: {
+          clicks?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          impressions?: number | null
+          is_active?: boolean | null
+          start_date?: string
+          target_url?: string
+          title?: string
+        }
+        Relationships: []
+      }
       domain_likes: {
         Row: {
           created_at: string | null
@@ -182,6 +221,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           company: string | null
@@ -226,7 +286,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -341,6 +401,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
