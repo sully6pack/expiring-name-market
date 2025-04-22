@@ -5,7 +5,7 @@ import { Domain, DomainCategory } from "@/types";
 import { getUniqueTLDs } from "@/utils/domainUtils";
 import { filterValidDomains } from "@/utils/validation";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase"; // Update to use the same Supabase client
 import { seedInitialDomains } from "@/services/seedDomains";
 
 export const useDomainsList = () => {
