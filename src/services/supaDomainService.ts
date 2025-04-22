@@ -1,3 +1,4 @@
+
 import { supabase, convertDbDomainToDomain, fetchDomainById, updateDomainVerification } from '@/lib/supabase';
 import { Domain, DomainCategory, VerificationStatus, VerificationMethod } from '@/types';
 import { extractTLD } from '@/utils/domainUtils';
@@ -147,6 +148,18 @@ export const addDomain = async (domainData: {
   price?: number;
 }): Promise<Domain | null> => {
   try {
+    // First verify that the seller exists in the users table
+    const { data: sellerExists, error: sellerCheckError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', domainData.sellerId)
+      .single();
+    
+    if (sellerCheckError || !sellerExists) {
+      console.error('Seller does not exist:', sellerCheckError);
+      return null;
+    }
+    
     const tld = extractTLD(domainData.name) || "";
     
     const { data, error } = await supabase
@@ -158,7 +171,7 @@ export const addDomain = async (domainData: {
         seller_id: domainData.sellerId,
         seller_name: domainData.sellerName,
         likes: 0,
-        price: 99, // Fixed price at $99
+        price: domainData.price || 99, // Fixed price at $99 if not specified
         is_sponsored: false,
         is_admin_pick: false,
         created_at: new Date().toISOString(),

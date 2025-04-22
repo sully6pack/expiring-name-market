@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Domain, DomainCategory, VerificationStatus } from "@/types";
 import { isDomainValid } from "@/utils/validation";
 import { extractTLD } from "@/utils/domainUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { validateDomainCategory, validateVerificationStatus } from "@/utils/domainValidation";
 
 interface DomainSubmitData {
@@ -20,7 +20,30 @@ export const useDashboardDomains = (userId: string | undefined) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [myDomains, setMyDomains] = useState<Domain[]>([]);
   const [interestedBuyers, setInterestedBuyers] = useState<{ domainId: string; buyerName: string; email: string }[]>([]);
+  const [sellerName, setSellerName] = useState<string>("");
   const navigate = useNavigate();
+
+  // Fetch user profile to get the display name
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+
+      // Use name if available, otherwise use email or a default name
+      const displayName = data.name || data.email || "Unknown Seller";
+      setSellerName(displayName);
+    } catch (error) {
+      console.error("Error in fetchUserProfile:", error);
+    }
+  };
 
   const fetchUserDomains = async (userId: string | undefined) => {
     if (!userId) return;
@@ -113,6 +136,16 @@ export const useDashboardDomains = (userId: string | undefined) => {
         return date;
       })();
       
+      // Make sure we have the seller name
+      if (!sellerName) {
+        await fetchUserProfile(userId);
+      }
+      
+      // Use the display name we fetched or a fallback
+      const displayName = sellerName || "Seller";
+      
+      console.log(`Inserting domain with seller_id: ${userId}, seller_name: ${displayName}`);
+      
       // Insert domain into Supabase - Set is_verified to true
       const { data, error } = await supabase
         .from('domains')
@@ -121,7 +154,7 @@ export const useDashboardDomains = (userId: string | undefined) => {
           description: domainData.description,
           expiration_date: expirationDate.toISOString(),
           seller_id: userId,
-          seller_name: userId, // This will be replaced with user's name
+          seller_name: displayName,
           price: 99.00, // Fixed price
           category: domainData.category,
           tld: tld,
@@ -198,10 +231,11 @@ export const useDashboardDomains = (userId: string | undefined) => {
     }
   };
 
-  // Initial load of domains
+  // Initial load of domains and user profile
   useEffect(() => {
     if (userId) {
       fetchUserDomains(userId);
+      fetchUserProfile(userId);
     }
   }, [userId]);
 
