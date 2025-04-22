@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ export function useDomainLike(domain: Domain) {
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
+  const [isRealtimeActive, setIsRealtimeActive] = useState<boolean>(false);
 
   // Fetch current like status and count
   const fetchLikeData = async () => {
@@ -60,6 +62,19 @@ export function useDomainLike(domain: Domain) {
     fetchLikeData();
   }, [appUser, domain.id]);
 
+  // Set up manual refresh interval as fallback if realtime fails
+  useEffect(() => {
+    // Only set up the interval if realtime is not active
+    if (!isRealtimeActive && domain.id && appUser) {
+      console.log("Setting up manual refresh interval as fallback");
+      const intervalId = setInterval(() => {
+        fetchLikeData();
+      }, 10000); // Refresh every 10 seconds
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [isRealtimeActive, domain.id, appUser]);
+
   // Listen for real-time updates
   useEffect(() => {
     if (!domain.id) return;
@@ -70,6 +85,7 @@ export function useDomainLike(domain: Domain) {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'domains', filter: `id=eq.${domain.id}` },
         (payload: any) => {
+          setIsRealtimeActive(true);
           if (payload.new && typeof payload.new.likes === 'number') {
             console.log(`Real-time update for domain ${domain.id}: likes = ${payload.new.likes}`);
             setLikes(payload.new.likes);
@@ -79,6 +95,7 @@ export function useDomainLike(domain: Domain) {
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'domain_likes', filter: `domain_id=eq.${domain.id}` },
         (payload: any) => {
+          setIsRealtimeActive(true);
           if (payload.eventType === 'INSERT' && payload.new.user_id === appUser?.id) {
             setIsLiked(true);
             setLikes(prev => prev + 1);
@@ -88,10 +105,47 @@ export function useDomainLike(domain: Domain) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime status for domain ${domain.id} likes:`, status);
+        setIsRealtimeActive(status === 'SUBSCRIBED');
+      });
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [domain.id, appUser?.id]);
+
+  // Listen for global domain events as a backup
+  useEffect(() => {
+    const handleDomainLikeChanged = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id) {
+        console.log("Received domain likes changed event:", event.detail);
+        setLikes(event.detail.likes);
+      }
+    };
+
+    const handleDomainLikeAdded = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id && event.detail.userId === appUser?.id) {
+        console.log("Received like added event");
+        setIsLiked(true);
+      }
+    };
+
+    const handleDomainLikeRemoved = (event: CustomEvent) => {
+      if (event.detail.domainId === domain.id && event.detail.userId === appUser?.id) {
+        console.log("Received like removed event");
+        setIsLiked(false);
+      }
+    };
+
+    window.addEventListener('domain-likes-changed', handleDomainLikeChanged as EventListener);
+    window.addEventListener('domain-like-added', handleDomainLikeAdded as EventListener);
+    window.addEventListener('domain-like-removed', handleDomainLikeRemoved as EventListener);
+
+    return () => {
+      window.removeEventListener('domain-likes-changed', handleDomainLikeChanged as EventListener);
+      window.removeEventListener('domain-like-added', handleDomainLikeAdded as EventListener);
+      window.removeEventListener('domain-like-removed', handleDomainLikeRemoved as EventListener);
     };
   }, [domain.id, appUser?.id]);
 
@@ -145,6 +199,8 @@ export function useDomainLike(domain: Domain) {
           }
         } else {
           toast.success(`You liked ${domain.name}`);
+          // Refetch to ensure we have the latest data
+          setTimeout(fetchLikeData, 1000);
         }
       } else {
         // Remove like
@@ -162,6 +218,8 @@ export function useDomainLike(domain: Domain) {
           toast.error("Failed to unlike domain");
         } else {
           toast.success(`You unliked ${domain.name}`);
+          // Refetch to ensure we have the latest data
+          setTimeout(fetchLikeData, 1000);
         }
       }
     } catch (error) {
@@ -176,5 +234,11 @@ export function useDomainLike(domain: Domain) {
     }
   };
 
-  return { likes, isLiked, toggleLike, isLoading };
+  return { 
+    likes, 
+    isLiked, 
+    toggleLike, 
+    isLoading,
+    isRealtimeActive  // Added to help with debugging
+  };
 }

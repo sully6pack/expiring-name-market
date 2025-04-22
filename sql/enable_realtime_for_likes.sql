@@ -26,3 +26,6 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.domain_likes;
   END IF;
 END $$;
+
+-- Make sure realtime is enabled in config.toml
+-- Ensure [realtime] section has enabled = true

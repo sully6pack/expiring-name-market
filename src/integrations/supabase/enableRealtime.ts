@@ -2,10 +2,13 @@
 import { supabase } from "./client";
 import { toast } from "sonner";
 
-// Enable realtime for domains table
-export const enableRealtimeForDomains = async () => {
+// Maximum number of retry attempts
+const MAX_RETRIES = 3;
+
+// Enable realtime for domains table with retry mechanism
+export const enableRealtimeForDomains = async (retryCount = 0) => {
   try {
-    console.log("Setting up domain realtime listeners");
+    console.log(`Setting up domain realtime listeners (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
@@ -42,25 +45,58 @@ export const enableRealtimeForDomains = async () => {
         console.log(`Domains channel subscription status:`, status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to domains table changes');
+          // Reset any error toasts that might be showing
+          toast.dismiss('domains-realtime-error');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to domains table changes');
-          toast.error('Error connecting to real-time updates');
+          
+          // Only show toast on first attempt
+          if (retryCount === 0) {
+            toast.error('Error connecting to real-time updates', {
+              id: 'domains-realtime-error',
+              duration: 5000
+            });
+          }
+          
+          // Retry connection if not exceeding max retries
+          if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying domains connection in ${(retryCount + 1) * 2} seconds...`);
+            setTimeout(() => {
+              enableRealtimeForDomains(retryCount + 1);
+            }, (retryCount + 1) * 2000);
+          }
         }
       });
       
-    console.log('Realtime enabled for domains table');
+    console.log('Realtime subscription request sent for domains table');
     return true;
   } catch (error) {
     console.error('Error enabling realtime for domains:', error);
-    toast.error('Error setting up real-time updates');
+    
+    // Only show toast on first attempt
+    if (retryCount === 0) {
+      toast.error('Error setting up real-time updates', {
+        id: 'domains-realtime-error',
+        duration: 5000
+      });
+    }
+    
+    // Retry connection if not exceeding max retries
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Retrying domains connection in ${(retryCount + 1) * 2} seconds...`);
+      setTimeout(() => {
+        enableRealtimeForDomains(retryCount + 1);
+      }, (retryCount + 1) * 2000);
+    }
+    
     return false;
   }
 };
 
-// Enable realtime for domain_likes table
-export const enableRealtimeForLikes = async () => {
+// Enable realtime for domain_likes table with retry mechanism
+export const enableRealtimeForLikes = async (retryCount = 0) => {
   try {
-    console.log("Setting up domain_likes realtime listeners");
+    console.log(`Setting up domain_likes realtime listeners (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
     
     // Use channel.on to subscribe to realtime changes
     const channel = supabase
@@ -97,22 +133,55 @@ export const enableRealtimeForLikes = async () => {
         console.log(`Domain likes channel subscription status:`, status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to domain_likes table changes');
+          // Reset any error toasts that might be showing
+          toast.dismiss('likes-realtime-error');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('Error subscribing to domain_likes table changes');
-          toast.error('Error connecting to real-time updates');
+          
+          // Only show toast on first attempt
+          if (retryCount === 0) {
+            toast.error('Error connecting to real-time updates', {
+              id: 'likes-realtime-error',
+              duration: 5000
+            });
+          }
+          
+          // Retry connection if not exceeding max retries
+          if (retryCount < MAX_RETRIES) {
+            console.log(`Retrying likes connection in ${(retryCount + 1) * 2} seconds...`);
+            setTimeout(() => {
+              enableRealtimeForLikes(retryCount + 1);
+            }, (retryCount + 1) * 2000);
+          }
         }
       });
       
-    console.log('Realtime enabled for domain_likes table');
+    console.log('Realtime subscription request sent for domain_likes table');
     return true;
   } catch (error) {
     console.error('Error enabling realtime for domain_likes:', error);
-    toast.error('Error setting up real-time updates');
+    
+    // Only show toast on first attempt
+    if (retryCount === 0) {
+      toast.error('Error setting up real-time updates', {
+        id: 'likes-realtime-error',
+        duration: 5000
+      });
+    }
+    
+    // Retry connection if not exceeding max retries
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Retrying likes connection in ${(retryCount + 1) * 2} seconds...`);
+      setTimeout(() => {
+        enableRealtimeForLikes(retryCount + 1);
+      }, (retryCount + 1) * 2000);
+    }
+    
     return false;
   }
 };
 
-// Initialize realtime
+// Initialize realtime with improved error handling
 export const initializeRealtime = async () => {
   console.log("Initializing realtime for domains and likes");
   
@@ -124,13 +193,23 @@ export const initializeRealtime = async () => {
     console.log('No existing channels to remove');
   }
   
+  // Add a small delay before initializing to ensure the client is ready
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
   const domainsResult = await enableRealtimeForDomains();
   const likesResult = await enableRealtimeForLikes();
   
   if (domainsResult && likesResult) {
-    console.log('Realtime successfully initialized for domains and likes');
+    console.log('Realtime initialization process started for domains and likes');
   } else {
-    console.error('Failed to initialize realtime for domains and/or likes');
-    toast.error('Error initializing real-time updates');
+    console.log('Started realtime with automatic retry mechanism');
   }
+  
+  // Set up a reconnect mechanism for page visibility changes
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('Page became visible, checking realtime connections');
+      initializeRealtime();
+    }
+  });
 };

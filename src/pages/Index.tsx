@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -24,12 +25,22 @@ const Index = () => {
   const [sponsored, setSponsored] = useState<Domain[]>([]);
   const [availableTLDs, setAvailableTLDs] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [realtimeInitialized, setRealtimeInitialized] = useState(false);
 
   useEffect(() => {
-    const initRealtime = async () => {
-      await initializeRealtime();
+    const setupRealtime = async () => {
+      try {
+        if (!realtimeInitialized) {
+          console.log("Setting up realtime for the first time");
+          await initializeRealtime();
+          setRealtimeInitialized(true);
+        }
+      } catch (error) {
+        console.error("Error setting up realtime:", error);
+      }
     };
-    initRealtime();
+    
+    setupRealtime();
     
     const handleDomainUpdated = (event: CustomEvent) => {
       console.log('Domain updated event received:', event.detail);
@@ -42,11 +53,8 @@ const Index = () => {
     return () => {
       window.removeEventListener('domain-updated', handleDomainUpdated as EventListener);
       window.removeEventListener('domain-likes-changed', handleDomainUpdated as EventListener);
-      
-      supabase.removeChannel(supabase.channel('public:domains'));
-      supabase.removeChannel(supabase.channel('public:domain_likes'));
     };
-  }, []);
+  }, [realtimeInitialized]);
 
   const loadDomains = async () => {
     setIsLoading(true);
@@ -95,9 +103,10 @@ const Index = () => {
       
       setAvailableTLDs(getUniqueTLDs(validDomains));
       
-      if (validDomains.length > 0) {
+      // Only show success toast on first load, not on updates
+      if (!featuredDomains.length && validDomains.length > 0) {
         toast.success(`Loaded ${validDomains.length} domains`);
-      } else {
+      } else if (!featuredDomains.length && validDomains.length === 0) {
         toast.info("No domains available at the moment");
       }
     } catch (error) {
