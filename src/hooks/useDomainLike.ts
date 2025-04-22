@@ -11,44 +11,54 @@ export function useDomainLike(domain: Domain) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
+  // Fetch current like status and count
+  const fetchLikeData = async () => {
+    if (!appUser || !domain.id) {
+      setIsLiked(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Fetch like status
+      const { data: likeData, error: likeError } = await supabase
+        .from('domain_likes')
+        .select('*')
+        .eq('domain_id', domain.id)
+        .eq('user_id', appUser.id)
+        .maybeSingle();
+
+      if (likeError && likeError.code !== 'PGRST116') {
+        console.error("Error checking like status:", likeError);
+      }
+
+      // Fetch current likes count
+      const { data: domainData, error: domainError } = await supabase
+        .from('domains')
+        .select('likes')
+        .eq('id', domain.id)
+        .single();
+
+      if (domainError) {
+        console.error("Error fetching domain likes count:", domainError);
+      }
+
+      // Update states
+      setIsLiked(!!likeData);
+      if (domainData?.likes !== undefined) {
+        setLikes(domainData.likes);
+      }
+    } catch (error) {
+      console.error("Error in fetchLikeData:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Initialize like status and count
   useEffect(() => {
-    // Update likes when domain.likes changes externally
-    if (domain.likes !== undefined && domain.likes !== likes) {
-      setLikes(domain.likes);
-    }
-    
-    const fetchLikeStatus = async () => {
-      if (!appUser || !domain.id) {
-        setIsLiked(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        // Check if user has liked this domain
-        const { data, error } = await supabase
-          .from('domain_likes')
-          .select('*')
-          .eq('domain_id', domain.id)
-          .eq('user_id', appUser.id)
-          .maybeSingle();  // Use maybeSingle instead of single to avoid errors
-
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error checking like status:", error);
-        }
-
-        // Update liked state based on whether data was found
-        setIsLiked(!!data);
-      } catch (error) {
-        console.error("Error in fetchLikeStatus:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLikeStatus();
-  }, [appUser, domain.id, domain.likes]);
+    fetchLikeData();
+  }, [appUser, domain.id]);
 
   // Listen for real-time updates
   useEffect(() => {
@@ -71,8 +81,10 @@ export function useDomainLike(domain: Domain) {
         (payload: any) => {
           if (payload.eventType === 'INSERT' && payload.new.user_id === appUser?.id) {
             setIsLiked(true);
+            setLikes(prev => prev + 1);
           } else if (payload.eventType === 'DELETE' && payload.old.user_id === appUser?.id) {
             setIsLiked(false);
+            setLikes(prev => Math.max(0, prev - 1));
           }
         }
       )
