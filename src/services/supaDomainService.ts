@@ -1,4 +1,3 @@
-
 import { supabase, convertDbDomainToDomain, fetchDomainById, updateDomainVerification } from '@/lib/supabase';
 import { Domain, DomainCategory, VerificationStatus, VerificationMethod } from '@/types';
 import { extractTLD } from '@/utils/domainUtils';
@@ -275,8 +274,12 @@ export const toggleDomainLike = async (domainId: string, userId: string, isAddin
         .insert({ domain_id: domainId, user_id: userId });
       
       if (error) {
+        if (error.code === '23505') {
+          console.log('User already liked this domain');
+          return true; // Consider this a success since the like exists
+        }
         console.error('Error adding domain like:', error);
-        return false;
+        throw new Error(`Failed to add like: ${error.message}`);
       }
     } else {
       // Remove like
@@ -288,14 +291,14 @@ export const toggleDomainLike = async (domainId: string, userId: string, isAddin
       
       if (error) {
         console.error('Error removing domain like:', error);
-        return false;
+        throw new Error(`Failed to remove like: ${error.message}`);
       }
     }
     
     return true;
   } catch (error) {
     console.error('Error in toggleDomainLike:', error);
-    return false;
+    throw error; // Re-throw to allow caller to handle specific errors
   }
 };
 

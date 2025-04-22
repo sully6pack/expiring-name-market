@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -67,12 +66,22 @@ export function useDomainLike(domain: Domain) {
           }
         }
       )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'domain_likes', filter: `domain_id=eq.${domain.id}` },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT' && payload.new.user_id === appUser?.id) {
+            setIsLiked(true);
+          } else if (payload.eventType === 'DELETE' && payload.old.user_id === appUser?.id) {
+            setIsLiked(false);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [domain.id]);
+  }, [domain.id, appUser?.id]);
 
   // Toggle like function with improved error handling and optimistic updates
   const toggleLike = async () => {
